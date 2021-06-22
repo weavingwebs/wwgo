@@ -23,7 +23,16 @@ type Claims interface {
 	GetStandardClaims() jwt.StandardClaims
 }
 
-func JwtMiddleware(jwks jwk.Set, claims Claims, log zerolog.Logger) func(http.Handler) http.Handler {
+// JwtMiddleware
+//
+// DANGER: It is very important for newClaims to return a fresh claims pointer,
+// otherwise all requests will share the same JWT claims pointer!
+// @todo is there a way to make this less dangerous while keeping it generic?
+func JwtMiddleware(
+	jwks jwk.Set,
+	log zerolog.Logger,
+	newClaims func() Claims,
+) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check for token.
@@ -35,6 +44,7 @@ func JwtMiddleware(jwks jwk.Set, claims Claims, log zerolog.Logger) func(http.Ha
 			}
 
 			// Parse the token.
+			claims := newClaims()
 			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 				kid, ok := token.Header["kid"].(string)
 				if !ok {
