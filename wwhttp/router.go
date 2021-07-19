@@ -13,7 +13,7 @@ func NewRouter(logger zerolog.Logger, serviceName string) *chi.Mux {
 	httpLogger := logger.With().Str("service", strings.ToLower(serviceName))
 
 	r := chi.NewRouter()
-	r.Use(middleware.RequestID)
+	r.Use(middleware.SetHeader("X-Clacks-Overhead", "GNU Terry Pratchett"))
 	r.Use(httplog.Handler(httpLogger.Logger()))
 	r.Use(middleware.Recoverer)
 	r.Use(RequestIDHeaderMiddleware)
