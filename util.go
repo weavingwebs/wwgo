@@ -316,3 +316,10 @@ func ArrayFillStr(value string, count int) []string {
 	}
 	return res
 }
+
+func Plural(count int, singular string, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
+}
