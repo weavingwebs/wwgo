@@ -2,10 +2,24 @@ package wwauth
 
 import (
 	"crypto/rand"
+	"encoding/base64"
 	"github.com/pkg/errors"
 	"math/big"
 	"strings"
 )
+
+func GenerateRandomBytes(length int) []byte {
+	b := make([]byte, length)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(errors.Wrapf(err, "failed to generate random bytes"))
+	}
+	return b
+}
+
+func GenerateUrlSafeRandomBytes(numBytes int) string {
+	return base64.URLEncoding.EncodeToString(GenerateRandomBytes(numBytes))
+}
 
 func GenerateRandomString(length int, charset []rune) string {
 	res := make([]rune, length)
