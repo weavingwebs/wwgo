@@ -2,7 +2,7 @@ package wwauth
 
 import (
 	"context"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
