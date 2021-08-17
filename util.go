@@ -169,6 +169,18 @@ func ArrayIncludesUUID(haystack []uuid.UUID, needle uuid.UUID) bool {
 	return false
 }
 
+func IntArray2StrArray(in []int) []string {
+	out := make([]string, len(in))
+	for i, v := range in {
+		out[i] = strconv.Itoa(v)
+	}
+	return out
+}
+
+func JoinIntArray(in []int, sep string) string {
+	return strings.Join(IntArray2StrArray(in), sep)
+}
+
 func UuidRef(id uuid.UUID) *uuid.UUID {
 	return &id
 }
