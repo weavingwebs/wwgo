@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/fcgi"
 	"os"
+	"path"
 )
 
 type FcgiServer struct {
@@ -33,17 +34,24 @@ func (srv *FcgiServer) Start(ctx context.Context) error {
 	if srv.SocketPath == "" {
 		return errors.Errorf("SocketPath cannot be empty")
 	}
+	if err := os.MkdirAll(path.Dir(srv.SocketPath), 0770); err != nil {
+		return err
+	}
+
 	listener, err := net.Listen("unix", srv.SocketPath)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	// HACK: chmod the socket file for local dev so apache can write to the socket
 	// regardless of the user we run as.
 	// In production, the server should be run as the apache user instead.
 	if srv.GlobalRwx {
+		if err := os.Chmod(path.Dir(srv.SocketPath), 0777); err != nil {
+			return err
+		}
 		if err := os.Chmod(srv.SocketPath, 0777); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
