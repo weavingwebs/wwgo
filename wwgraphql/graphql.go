@@ -137,7 +137,7 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 			nil,
 		)
 	}
-	if rules.Pattern != nil {
+	if str != "" && rules.Pattern != nil {
 		switch strings.ToUpper(*rules.Pattern) {
 		case "EMAIL":
 			if !cognitoEmailRegexp.MatchString(str) {
