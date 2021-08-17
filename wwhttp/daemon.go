@@ -13,6 +13,10 @@ type Daemon struct {
 	gos *errgroup.Group
 }
 
+type DaemonServer interface {
+	Start(ctx context.Context) error
+}
+
 // Wait will block until the context is cancelled and will exit/panic or return.
 func (d *Daemon) Wait() {
 	if err := d.gos.Wait(); err != nil {
@@ -25,7 +29,7 @@ func (d *Daemon) Wait() {
 
 // RunDaemon runs the given server in the background and automatically attempts
 // graceful shutdown on interrupt.
-func RunDaemon(ctx context.Context, srv *Server) *Daemon {
+func RunDaemon(ctx context.Context, srv DaemonServer) *Daemon {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM) // SIGTERM for docker.
 	srvCtx, cancel := context.WithCancel(ctx)
