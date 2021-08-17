@@ -11,6 +11,7 @@ func MarshalUUIDScalar(id *uuid.UUID) graphql.Marshaler {
 	return graphql.WriterFunc(func(w io.Writer) {
 		if id == nil {
 			_, _ = w.Write([]byte("null"))
+			return
 		}
 		b, _ := id.MarshalText()
 		_, _ = w.Write([]byte(`"`))
