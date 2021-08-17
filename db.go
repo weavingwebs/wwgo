@@ -125,6 +125,20 @@ func MigrateCommand(migrator *migrate.Migrate) *cli.Command {
 					return nil
 				},
 			},
+			{
+				Name: "drop",
+				Action: func(ctx *cli.Context) error {
+					if !(CliConfirm("Are you sure you want to destroy the whole database?") && CliConfirm("Seriously, you are really sure you want to destroy the whole database?")) {
+						fmt.Println("cancelled")
+						return nil
+					}
+					if err := migrator.Drop(); err != nil {
+						return err
+					}
+					fmt.Println("👍️")
+					return nil
+				},
+			},
 		},
 	}
 }
