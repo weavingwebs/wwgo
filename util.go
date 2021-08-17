@@ -70,6 +70,24 @@ func ArrayDiffInt32(a []int32, b []int32) []int32 {
 	return diff
 }
 
+// ArrayDiffInt returns a slice of all values from a that are not in b.
+func ArrayDiffInt(a []int, b []int) []int {
+	diff := make([]int, 0)
+	for _, aItem := range a {
+		found := false
+		for _, bItem := range b {
+			if bItem == aItem {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diff = append(diff, aItem)
+		}
+	}
+	return diff
+}
+
 // ArrayDiffStr returns a slice of all values from a that are not in b.
 func ArrayDiffStr(a []string, b []string) []string {
 	diff := make([]string, 0)
