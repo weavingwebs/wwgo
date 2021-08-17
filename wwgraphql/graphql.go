@@ -74,6 +74,11 @@ func DefaultErrorPresenter(log zerolog.Logger) func(ctx context.Context, e error
 			// Use the message from the client error directly, it may have been
 			// wrapped by another error that is not client safe.
 			errResp.Message = clientErr.Error()
+
+			// If it wrapped an error, log it as well.
+			if wrappedErr := clientErr.Unwrap(); wrappedErr != nil {
+				log.Error().Stack().Err(wrappedErr).Send()
+			}
 		} else if errResp.Extensions["code"] != errcode.ValidationFailed && errResp.Extensions["code"] != errcode.ParseFailed {
 			// If the error is not a ClientError or GQL validation, obfuscate it.
 			errResp.Message = "An unexpected error occurred, please try again later"
