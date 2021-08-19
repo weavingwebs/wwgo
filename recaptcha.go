@@ -39,8 +39,8 @@ type ReCaptcha struct {
 }
 
 type ReCaptchaPublicSettings struct {
-	SiteKeyV2 string
-	SiteKeyV3 string
+	SiteKeyV2 string `json:"siteKeyV2"`
+	SiteKeyV3 string `json:"siteKeyV3"`
 }
 
 func NewReCaptchaFromEnv(log zerolog.Logger) ReCaptcha {

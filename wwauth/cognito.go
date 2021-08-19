@@ -19,9 +19,9 @@ type CognitoAuth struct {
 }
 
 type CognitoAuthPublicSettings struct {
-	UserPoolId string
-	ClientId   string
-	Region     string
+	UserPoolId string `json:"userPoolId"`
+	ClientId   string `json:"clientId"`
+	Region     string `json:"region"`
 }
 
 func NewCognitoAuth(
