@@ -18,10 +18,12 @@ type CognitoAuth struct {
 	clientId   string
 }
 
+// CognitoAuthPublicSettings should precisely represent the 'UserPoolConfig'
+// interface in ww-cognito-react.
 type CognitoAuthPublicSettings struct {
-	UserPoolId string `json:"userPoolId"`
-	ClientId   string `json:"clientId"`
-	Region     string `json:"region"`
+	UserPoolId string `json:"UserPoolId"`
+	ClientId   string `json:"ClientId"`
+	Region     string `json:"Region"`
 }
 
 func NewCognitoAuth(
