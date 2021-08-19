@@ -86,7 +86,7 @@ func (r ReCaptcha) PublicSettings() ReCaptchaPublicSettings {
 
 func (r ReCaptcha) ReCaptchaV3Verify(ctx context.Context, token string) (*ReCaptchaV3Response, error) {
 	secret := r.SecretKeyV3
-	if secret != "" {
+	if secret == "" {
 		return nil, errors.Errorf("reCAPTCHA V3 key is not set")
 	}
 	resp, err := reCaptchaVerifyFromContext(ctx, secret, token)
@@ -101,7 +101,7 @@ func (r ReCaptcha) ReCaptchaV3Verify(ctx context.Context, token string) (*ReCapt
 
 func (r ReCaptcha) ReCaptchaV2Verify(ctx context.Context, token string) (*ReCaptchaV2Response, error) {
 	secret := r.SecretKeyV2
-	if secret != "" {
+	if secret == "" {
 		return nil, errors.Errorf("reCAPTCHA V2 key is not set")
 	}
 	resp, err := reCaptchaVerifyFromContext(ctx, secret, token)
