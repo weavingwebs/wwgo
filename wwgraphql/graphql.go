@@ -12,6 +12,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/weavingwebs/wwgo"
+	"github.com/weavingwebs/wwgo/wwgraphql/scalars"
 	"regexp"
 	"strings"
 	"time"
@@ -158,6 +159,98 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 					nil,
 				)
 			}
+		}
+	}
+
+	return next(ctx)
+}
+
+type ValidateDateRules struct {
+	BeforeDate     *scalars.GqlDate      `json:"beforeDate"`
+	BeforeRelative *ValidateDateRelative `json:"beforeRelative"`
+	AfterDate      *scalars.GqlDate      `json:"afterDate"`
+	AfterRelative  *ValidateDateRelative `json:"afterRelative"`
+}
+
+type ValidateDateRelative struct {
+	Years  int `json:"years"`
+	Months int `json:"months"`
+	Days   int `json:"days"`
+}
+
+func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDateRules) (res interface{}, err error) {
+	values, ok := obj.(map[string]interface{})
+	if !ok {
+		// @todo gql internal error
+		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+	}
+
+	// Get value.
+	fieldName := *graphql.GetPathContext(ctx).Field
+	value, ok := values[fieldName]
+	if !ok {
+		// Do nothing if no value.
+		return next(ctx)
+	}
+	var date time.Time
+	switch v := value.(type) {
+	case time.Time:
+		date = v
+
+	case *time.Time:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		date = *v
+
+	case scalars.GqlDate:
+		date = time.Time(v)
+
+	case *scalars.GqlDate:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		date = time.Time(*v)
+
+	default:
+		return nil, errors.Errorf("Invalid type for %s: %T", fieldName, value)
+	}
+
+	// Validate.
+	if rules.BeforeDate != nil && !date.Before(rules.BeforeDate.Time()) {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_DATE_BEFORE_DATE_EXCEPTION",
+			fmt.Sprintf("Must be before %s", rules.BeforeDate.Time().Format(scalars.GqlDateFormat)),
+			nil,
+		)
+	}
+	if rules.BeforeRelative != nil {
+		d := time.Now().AddDate(rules.BeforeRelative.Years, rules.BeforeRelative.Months, rules.BeforeRelative.Days)
+		if !date.Before(d) {
+			return nil, wwgo.NewClientError(
+				"VALIDATE_DATE_BEFORE_RELATIVE_EXCEPTION",
+				fmt.Sprintf("Must be before %s", d.Format(scalars.GqlDateFormat)),
+				nil,
+			)
+		}
+	}
+	if rules.AfterDate != nil && !date.After(rules.AfterDate.Time()) {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_DATE_After_DATE_EXCEPTION",
+			fmt.Sprintf("Must be after %s", rules.AfterDate.Time().Format(scalars.GqlDateFormat)),
+			nil,
+		)
+	}
+	if rules.AfterRelative != nil {
+		d := time.Now().AddDate(rules.AfterRelative.Years, rules.AfterRelative.Months, rules.AfterRelative.Days)
+		if !date.After(d) {
+			return nil, wwgo.NewClientError(
+				"VALIDATE_DATE_AFTER_RELATIVE_EXCEPTION",
+				fmt.Sprintf("Must be after %s", d.Format(scalars.GqlDateFormat)),
+				nil,
+			)
 		}
 	}
 
