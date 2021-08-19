@@ -32,15 +32,41 @@ type ReCaptchaV3Response struct {
 type ReCaptcha struct {
 	Log         zerolog.Logger
 	SecretKeyV2 string
+	SiteKeyV2   string
 	SecretKeyV3 string
+	SiteKeyV3   string
 	MinScoreV3  float32
 }
 
+type ReCaptchaPublicSettings struct {
+	SiteKeyV2 string
+	SiteKeyV3 string
+}
+
 func NewReCaptchaFromEnv(log zerolog.Logger) ReCaptcha {
+	secretKeyV2 := os.Getenv("RECAPTCHA_V2_SECRET_KEY")
+	if secretKeyV2 == "" {
+		panic("RECAPTCHA_V2_SECRET_KEY is not set")
+	}
+	siteKeyV2 := os.Getenv("RECAPTCHA_V2_SITE_KEY")
+	if siteKeyV2 == "" {
+		panic("RECAPTCHA_V2_SITE_KEY is not set")
+	}
+	secretKeyV3 := os.Getenv("RECAPTCHA_V3_SECRET_KEY")
+	if secretKeyV3 == "" {
+		panic("RECAPTCHA_V3_SECRET_KEY is not set")
+	}
+	siteKeyV3 := os.Getenv("RECAPTCHA_V3_SITE_KEY")
+	if siteKeyV3 == "" {
+		panic("RECAPTCHA_V3_SITE_KEY is not set")
+	}
+
 	res := ReCaptcha{
 		Log:         log,
 		SecretKeyV2: os.Getenv("RECAPTCHA_V3_SECRET_KEY"),
+		SiteKeyV2:   siteKeyV2,
 		SecretKeyV3: os.Getenv("RECAPTCHA_V2_SECRET_KEY"),
+		SiteKeyV3:   siteKeyV3,
 		MinScoreV3:  0.9,
 	}
 	score := os.Getenv("RECAPTCHA_V3_SCORE")
@@ -52,6 +78,13 @@ func NewReCaptchaFromEnv(log zerolog.Logger) ReCaptcha {
 		res.MinScoreV3 = float32(f)
 	}
 	return res
+}
+
+func (r ReCaptcha) PublicSettings() ReCaptchaPublicSettings {
+	return ReCaptchaPublicSettings{
+		SiteKeyV2: r.SiteKeyV2,
+		SiteKeyV3: r.SiteKeyV3,
+	}
 }
 
 func (r ReCaptcha) ReCaptchaV3Verify(ctx context.Context, token string) (*ReCaptchaV3Response, error) {
