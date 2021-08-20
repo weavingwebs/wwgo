@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/cenkalti/backoff/v4"
+	mysql2 "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	bindata "github.com/golang-migrate/migrate/v4/source/go_bindata"
@@ -13,9 +14,12 @@ import (
 	sqldblogger "github.com/simukti/sqldb-logger"
 	"github.com/simukti/sqldb-logger/logadapter/zerologadapter"
 	"github.com/urfave/cli/v2"
+	"os"
 	"strings"
 	"time"
 )
+
+const MB = 1 << 20
 
 func OpenDb(log zerolog.Logger, driverName string, dsn string, maxOpenConns int) (*sqlx.DB, error) {
 	db, err := sql.Open(driverName, dsn)
@@ -52,6 +56,14 @@ func OpenDb(log zerolog.Logger, driverName string, dsn string, maxOpenConns int)
 		return nil, errors.Wrap(err, "failed to connect to database")
 	}
 	return dbX, nil
+}
+
+func OpenDbFromWhaleblazer(log zerolog.Logger, maxOpenConns int) (*sqlx.DB, error) {
+	sqlConfig, err := WhaleblazerMysqlConfig()
+	if err != nil {
+		return nil, err
+	}
+	return OpenDb(log, "mysql", sqlConfig.FormatDSN(), maxOpenConns)
 }
 
 func MysqlDbMigrate(db *sqlx.DB, migrations *bindata.AssetSource) (*migrate.Migrate, error) {
@@ -141,4 +153,43 @@ func MigrateCommand(migrator *migrate.Migrate) *cli.Command {
 			},
 		},
 	}
+}
+
+func WhaleblazerMysqlConfig() (*mysql2.Config, error) {
+	dbHost := os.Getenv("WHALEBLAZER_DB_HOST")
+	if dbHost == "" {
+		return nil, errors.Errorf("WHALEBLAZER_DB_HOST is not set")
+	}
+	dbName := os.Getenv("WHALEBLAZER_DB_NAME")
+	if dbName == "" {
+		return nil, errors.Errorf("WHALEBLAZER_DB_NAME is not set")
+	}
+	dbUser := os.Getenv("WHALEBLAZER_DB_USER")
+	if dbUser == "" {
+		return nil, errors.Errorf("WHALEBLAZER_DB_USER is not set")
+	}
+	dbPass := os.Getenv("WHALEBLAZER_DB_PASS")
+	if dbPass == "" {
+		return nil, errors.Errorf("WHALEBLAZER_DB_PASS is not set")
+	}
+	dbPort := os.Getenv("WHALEBLAZER_DB_PORT")
+	if dbPort == "" {
+		dbPort = "3306"
+	}
+	dbCollation := os.Getenv("WHALEBLAZER_DB_COLLATION")
+
+	sqlConfig := &mysql2.Config{
+		User:                 dbUser,
+		Passwd:               dbPass,
+		Net:                  "tcp",
+		Addr:                 dbHost + ":" + dbPort,
+		DBName:               dbName,
+		Collation:            dbCollation,
+		Loc:                  time.UTC,
+		MaxAllowedPacket:     4 * MB,
+		AllowNativePasswords: true,
+		MultiStatements:      true,
+		ParseTime:            true,
+	}
+	return sqlConfig, nil
 }
