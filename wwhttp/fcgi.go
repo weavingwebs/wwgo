@@ -19,9 +19,9 @@ type FcgiServer struct {
 }
 
 func NewFcgiServerFromEnv(router http.Handler) *FcgiServer {
-	fcgiSocket := os.Getenv("FCGI_SOCK")
+	fcgiSocket := os.Getenv("WHALEBLAZER_FCGI_SOCK")
 	if fcgiSocket == "" {
-		panic("FCGI_SOCK is not defined")
+		panic("WHALEBLAZER_FCGI_SOCK is not defined")
 	}
 	return &FcgiServer{
 		Router:     router,
