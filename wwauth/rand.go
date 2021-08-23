@@ -45,3 +45,8 @@ func RandomHumanPassword() string {
 		GenerateRandomString(5, []rune(numbers)),
 	}, "")
 }
+
+func RandomAlphanumeric(length int) string {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	return GenerateRandomString(length, []rune(charset))
+}
