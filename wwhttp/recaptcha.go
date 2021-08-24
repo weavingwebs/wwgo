@@ -1,11 +1,11 @@
-package wwgo
+package wwhttp
 
 import (
 	"context"
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/weavingwebs/wwgo/wwhttp"
+	"github.com/weavingwebs/wwgo"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -126,7 +126,7 @@ func (r ReCaptcha) VerifyReCaptchaTokensFromContext(ctx context.Context, action 
 			return err
 		}
 		if !result.Success {
-			return NewClientError("RECAPTCHA_V2_VERIFICATION_EXCEPTION", "Anti-bot verification failed, please try again", nil)
+			return wwgo.NewClientError("RECAPTCHA_V2_VERIFICATION_EXCEPTION", "Anti-bot verification failed, please try again", nil)
 		}
 		return nil
 	} else if tokens.ReCaptchaV3token != nil {
@@ -135,18 +135,18 @@ func (r ReCaptcha) VerifyReCaptchaTokensFromContext(ctx context.Context, action 
 			return err
 		}
 		if !result.Success {
-			return NewClientError("RECAPTCHA_V3_VERIFICATION_EXCEPTION", "Invalid reCAPTCHA V3 token", nil)
+			return wwgo.NewClientError("RECAPTCHA_V3_VERIFICATION_EXCEPTION", "Invalid reCAPTCHA V3 token", nil)
 		}
 		r.Log.Info().Msgf("reCAPTCHA score: %f", result.Score)
 		if result.Action != action {
-			return NewClientError("RECAPTCHA_V3_ACTION_EXCEPTION", "Invalid reCAPTCHA V3 action", nil)
+			return wwgo.NewClientError("RECAPTCHA_V3_ACTION_EXCEPTION", "Invalid reCAPTCHA V3 action", nil)
 		}
 		if result.Score < r.MinScoreV3 {
-			return NewClientError("RECAPTCHA_V3_SCORE_BELOW_THRESHOLD_EXCEPTION", "reCAPTCHA V3 score is below threshold, V2 required", nil)
+			return wwgo.NewClientError("RECAPTCHA_V3_SCORE_BELOW_THRESHOLD_EXCEPTION", "reCAPTCHA V3 score is below threshold, V2 required", nil)
 		}
 		return nil
 	}
-	return NewClientError("RECAPTCHA_MISSING_TOKEN_EXCEPTION", "reCAPTCHA V2 or reCAPTCHA V3 token required", nil)
+	return wwgo.NewClientError("RECAPTCHA_MISSING_TOKEN_EXCEPTION", "reCAPTCHA V2 or reCAPTCHA V3 token required", nil)
 }
 
 func reCaptchaVerify(ip net.IP, secret string, token string) ([]byte, error) {
@@ -170,6 +170,6 @@ func reCaptchaVerify(ip net.IP, secret string, token string) ([]byte, error) {
 }
 
 func reCaptchaVerifyFromContext(ctx context.Context, secret string, token string) ([]byte, error) {
-	ip := wwhttp.IpForContext(ctx)
+	ip := IpForContext(ctx)
 	return reCaptchaVerify(ip, secret, token)
 }

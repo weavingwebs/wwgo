@@ -1,4 +1,4 @@
-package wwgo
+package wwaws
 
 import (
 	"context"
