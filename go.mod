@@ -28,6 +28,7 @@ require (
 	github.com/simukti/sqldb-logger v0.0.0-20201125162808-c35f87e285f2
 	github.com/simukti/sqldb-logger/logadapter/zerologadapter v0.0.0-20201125162808-c35f87e285f2
 	github.com/stripe/stripe-go/v72 v72.61.0
+	github.com/subchen/go-trylock/v2 v2.0.0 // indirect
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vektah/gqlparser/v2 v2.2.0
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
