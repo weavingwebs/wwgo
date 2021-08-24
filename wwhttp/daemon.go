@@ -32,11 +32,15 @@ func (d *Daemon) Wait() {
 func RunDaemon(ctx context.Context, srv DaemonServer) *Daemon {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM) // SIGTERM for docker.
-	srvCtx, cancel := context.WithCancel(ctx)
-	d := &Daemon{gos: &errgroup.Group{}}
+	ctx, cancel := context.WithCancel(ctx)
+	gos, srvCtx := errgroup.WithContext(ctx)
+	d := &Daemon{gos: gos}
 	d.gos.Go(func() error {
-		<-ch
-		cancel()
+		select {
+		case <-ch:
+			cancel()
+		case <-srvCtx.Done():
+		}
 		return nil
 	})
 	d.gos.Go(func() error {
