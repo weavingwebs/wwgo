@@ -77,10 +77,15 @@ func (wi WebhookInput) stripeEvents() []*string {
 	return events
 }
 
+var ErrNoWebhook = errors.Errorf("Stripe webhook does not exist")
+var ErrNoWebhookSecret = errors.Errorf("FATAL: Webhook exists but webhook secret is not configured, find it at https://dashboard.stripe.com/")
+
+type MigrateWebhookFailHandler func(err error)
+
 // MigrateWebhook asynchronously checks stripe API for an existing webhook and
-// updates the subscribed events if needed. Panics if a webhook for the given
-// url does not exist or the webhook secret is not set.
-func (sApi *Stripe) MigrateWebhook(input WebhookInput) {
+// updates the subscribed events if needed. onFail is called if a webhook for
+// the given url does not exist or the webhook secret is not set.
+func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFailHandler) {
 	// IMPORTANT: Do not to call Client() from here, it will deadlock.
 	sApi.webhookWg.Add(1)
 	go func() {
@@ -99,7 +104,7 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput) {
 					sApi.log.Debug().Interface("webhook", we).Msgf("Stripe Webhook")
 
 					if sApi.webhookSecret == "" {
-						sApi.log.Panic().Msgf("FATAL: Webhook exists but webhook secret is not configured, find it at https://dashboard.stripe.com/")
+						onFail(ErrNoWebhookSecret)
 					}
 
 					return
@@ -121,14 +126,14 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput) {
 				sApi.log.Info().Msgf("Stripe Webhook updated: " + we.ID)
 				sApi.log.Debug().Interface("webhook", we).Msgf("Updated Stripe Webhook")
 				if sApi.webhookSecret == "" {
-					sApi.log.Panic().Msgf("FATAL: Webhook exists but webhook secret is not configured, find it at https://dashboard.stripe.com/")
+					onFail(ErrNoWebhookSecret)
 				}
 				return
 			}
 		}
 
 		// Webhook does not exist.
-		sApi.log.Panic().Err(errors.Errorf("Stripe webhook does not exist")).Send()
+		onFail(ErrNoWebhook)
 	}()
 }
 
