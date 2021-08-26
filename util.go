@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/shopspring/decimal"
 	"io"
 	"math/big"
 	"strconv"
@@ -232,6 +233,10 @@ func TimeRef(v time.Time) *time.Time {
 	return &v
 }
 
+func DecimalRef(v decimal.Decimal) *decimal.Decimal {
+	return &v
+}
+
 // SqlNullStr will return a sql 'null' value if the string is empty.
 func SqlNullStr(v string) sql.NullString {
 	return sql.NullString{String: v, Valid: v != ""}
@@ -248,6 +253,14 @@ func SqlNullStrRef(v *string) sql.NullString {
 // SqlNullInt32 will return a sql 'null' value if the value is 0.
 func SqlNullInt32(v int32) sql.NullInt32 {
 	return sql.NullInt32{Int32: v, Valid: v != 0}
+}
+
+// SqlNullIntRef will return a sql 'null' value if the int is nil.
+func SqlNullIntRef(v *int) sql.NullInt32 {
+	if v == nil {
+		return sql.NullInt32{}
+	}
+	return sql.NullInt32{Int32: int32(*v), Valid: true}
 }
 
 // SqlNullTime will return a sql 'null' value if the time is 0.
