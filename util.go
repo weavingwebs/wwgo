@@ -201,22 +201,6 @@ func BoolRef(v bool) *bool {
 	return &v
 }
 
-// StrRefSql will return nil for a 'null' SQL string.
-func StrRefSql(v sql.NullString) *string {
-	if !v.Valid {
-		return nil
-	}
-	return StrRef(v.String)
-}
-
-// IntRefSql will return nil for a 'null' SQL string.
-func IntRefSql(v sql.NullInt32) *int {
-	if !v.Valid {
-		return nil
-	}
-	return IntRef(int(v.Int32))
-}
-
 func IntRef(v int) *int {
 	return &v
 }
@@ -242,7 +226,7 @@ func SqlNullStr(v string) sql.NullString {
 	return sql.NullString{String: v, Valid: v != ""}
 }
 
-// SqlNullStrRef will return a sql 'null' value if the string is nil.
+// SqlNullStrRef will return a sql 'null' value if the pointer is nil.
 func SqlNullStrRef(v *string) sql.NullString {
 	if v == nil {
 		return sql.NullString{}
@@ -255,7 +239,7 @@ func SqlNullInt32(v int32) sql.NullInt32 {
 	return sql.NullInt32{Int32: v, Valid: v != 0}
 }
 
-// SqlNullIntRef will return a sql 'null' value if the int is nil.
+// SqlNullIntRef will return a sql 'null' value if the pointer is nil.
 func SqlNullIntRef(v *int) sql.NullInt32 {
 	if v == nil {
 		return sql.NullInt32{}
@@ -268,17 +252,65 @@ func SqlNullTime(v time.Time) sql.NullTime {
 	return sql.NullTime{Time: v, Valid: !v.IsZero()}
 }
 
+// SqlNullTimeRef will return a sql 'null' value if the pointer is nil.
+func SqlNullTimeRef(v *time.Time) sql.NullTime {
+	if v == nil {
+		return sql.NullTime{}
+	}
+	return sql.NullTime{Time: *v, Valid: true}
+}
+
 // SqlNullUuid will return a sql 'null' value if the uuid is empty.
 func SqlNullUuid(v uuid.UUID) uuid.NullUUID {
 	return uuid.NullUUID{UUID: v, Valid: v != uuid.Nil}
 }
 
-// SqlNullUuidRef will return a sql 'null' value if the uuid is nil.
+// SqlNullUuidRef will return a sql 'null' value if the pointer is nil.
 func SqlNullUuidRef(v *uuid.UUID) uuid.NullUUID {
 	if v == nil {
 		return uuid.NullUUID{}
 	}
 	return uuid.NullUUID{UUID: *v, Valid: true}
+}
+
+// SqlNullDecimalRef will return a sql 'null' value if the pointer is nil.
+func SqlNullDecimalRef(v *decimal.Decimal) decimal.NullDecimal {
+	if v == nil {
+		return decimal.NullDecimal{}
+	}
+	return decimal.NullDecimal{Decimal: *v, Valid: true}
+}
+
+// StrRefFromSql will return nil for a 'null' SQL value.
+func StrRefFromSql(v sql.NullString) *string {
+	if !v.Valid {
+		return nil
+	}
+	return StrRef(v.String)
+}
+
+// IntRefFromSql will return nil for a 'null' SQL value.
+func IntRefFromSql(v sql.NullInt32) *int {
+	if !v.Valid {
+		return nil
+	}
+	return IntRef(int(v.Int32))
+}
+
+// DecimalRefFromSql will return nil for a 'null' SQL value.
+func DecimalRefFromSql(v decimal.NullDecimal) *decimal.Decimal {
+	if !v.Valid {
+		return nil
+	}
+	return DecimalRef(v.Decimal)
+}
+
+// TimeRefFromSql will return nil for a 'null' SQL value.
+func TimeRefFromSql(v sql.NullTime) *time.Time {
+	if !v.Valid {
+		return nil
+	}
+	return TimeRef(v.Time)
 }
 
 func SqlTinyIntFromBool(v bool) int8 {
