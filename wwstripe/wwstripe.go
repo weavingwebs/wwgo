@@ -16,12 +16,17 @@ import (
 type StripeEventHandler func(stripeApi *Stripe, event stripe.Event) error
 
 type Stripe struct {
-	sc            *client.API
-	log           zerolog.Logger
-	webhookWg     *sync.WaitGroup
-	stripeKey     string
-	webhookUrl    string
-	webhookSecret string
+	sc              *client.API
+	log             zerolog.Logger
+	webhookWg       *sync.WaitGroup
+	stripePublicKey string
+	stripeSecretKey string
+	webhookUrl      string
+	webhookSecret   string
+}
+
+type StripePublicSettings struct {
+	StripePublicKey string `json:"stripePublicKey"`
 }
 
 func NewStripeFromEnv(log zerolog.Logger) (*Stripe, error) {
@@ -30,10 +35,11 @@ func NewStripeFromEnv(log zerolog.Logger) (*Stripe, error) {
 		return nil, errors.New("missing STRIPE_SECRET_KEY")
 	}
 	sApi := &Stripe{
-		log:           log,
-		webhookWg:     &sync.WaitGroup{},
-		stripeKey:     stripeKey,
-		webhookSecret: os.Getenv("STRIPE_WEBHOOK_SECRET"),
+		log:             log,
+		webhookWg:       &sync.WaitGroup{},
+		stripeSecretKey: stripeKey,
+		stripePublicKey: os.Getenv("STRIPE_PUBLIC_KEY"),
+		webhookSecret:   os.Getenv("STRIPE_WEBHOOK_SECRET"),
 	}
 	sApi.sc = &client.API{}
 	sApi.sc.Init(stripeKey, nil)
@@ -48,7 +54,7 @@ func (sApi *Stripe) Client() *client.API {
 }
 
 func (sApi *Stripe) isTestMode() bool {
-	return strings.HasPrefix(sApi.stripeKey, "sk_test_")
+	return strings.HasPrefix(sApi.stripeSecretKey, "sk_test_")
 }
 
 func (sApi *Stripe) WebUrl(stripeId string) string {
@@ -58,6 +64,10 @@ func (sApi *Stripe) WebUrl(stripeId string) string {
 	}
 	url += "payments/" + stripeId
 	return url
+}
+
+func (sApi *Stripe) PublicSettings() StripePublicSettings {
+	return StripePublicSettings{StripePublicKey: sApi.stripePublicKey}
 }
 
 type WebhookInput struct {
