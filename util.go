@@ -268,6 +268,19 @@ func SqlNullTime(v time.Time) sql.NullTime {
 	return sql.NullTime{Time: v, Valid: !v.IsZero()}
 }
 
+// SqlNullUuid will return a sql 'null' value if the uuid is empty.
+func SqlNullUuid(v uuid.UUID) uuid.NullUUID {
+	return uuid.NullUUID{UUID: v, Valid: v != uuid.Nil}
+}
+
+// SqlNullUuidRef will return a sql 'null' value if the uuid is nil.
+func SqlNullUuidRef(v *uuid.UUID) uuid.NullUUID {
+	if v == nil {
+		return uuid.NullUUID{}
+	}
+	return uuid.NullUUID{UUID: *v, Valid: true}
+}
+
 func SqlTinyIntFromBool(v bool) int8 {
 	if v {
 		return 1
