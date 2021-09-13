@@ -197,6 +197,13 @@ func StrFromRef(v *string) string {
 	return *v
 }
 
+func StrNilIfEmpty(v string) *string {
+	if v == "" {
+		return nil
+	}
+	return &v
+}
+
 func BoolRef(v bool) *bool {
 	return &v
 }
