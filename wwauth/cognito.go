@@ -2,12 +2,15 @@ package wwauth
 
 import (
 	"context"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider/types"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"os"
+	"strings"
+	"time"
 )
 
 type CognitoAuth struct {
@@ -144,4 +147,67 @@ func (c *CognitoAuth) AdminResetPassword(ctx context.Context, id string) (string
 		return "", errors.Wrapf(err, "failed to reset user %s", id)
 	}
 	return tmpPassword, nil
+}
+
+// ListUsers with pagination handling.
+// This is always important as cognito will sometimes return an empty page with a token.
+func (c *CognitoAuth) ListUsers(ctx context.Context, input *cognitoidentityprovider.ListUsersInput) ([]types.UserType, error) {
+	doListUsers := func(paginationToken *string) (*cognitoidentityprovider.ListUsersOutput, error) {
+		input.PaginationToken = paginationToken
+		if input.Limit == nil {
+			input.Limit = aws.Int32(60)
+		}
+
+		var err error
+		i := 0
+		for i < 5 {
+			i++
+			res, err := c.idp.ListUsers(ctx, input)
+			if err != nil {
+				var tooManyRequestsErr *types.TooManyRequestsException
+				if errors.As(err, &tooManyRequestsErr) {
+					time.Sleep(time.Second)
+					continue
+				}
+				return nil, errors.Wrap(err, "failed to list users")
+			}
+			return res, nil
+		}
+		return nil, errors.Wrapf(err, "failed to list users (retry %d)", i)
+	}
+
+	users := make([]types.UserType, 0)
+	var paginationToken *string
+	for {
+		res, err := doListUsers(paginationToken)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, res.Users...)
+		if res.PaginationToken == nil {
+			break
+		}
+		paginationToken = res.PaginationToken
+	}
+
+	return users, nil
+}
+
+// AwsFilter helps format and attempts to escape filter expressions.
+func AwsFilter(field string, op string, value string) *string {
+	value = strings.ReplaceAll(strings.TrimSpace(value), `"`, `\"`)
+	res := fmt.Sprintf(`%s %s "%s"`, field, op, value)
+	return &res
+}
+
+func UserTypeFromAdminGetUserResult(res *cognitoidentityprovider.AdminGetUserOutput) types.UserType {
+	return types.UserType{
+		Attributes:           res.UserAttributes,
+		Enabled:              res.Enabled,
+		MFAOptions:           res.MFAOptions,
+		UserCreateDate:       res.UserCreateDate,
+		UserLastModifiedDate: res.UserLastModifiedDate,
+		UserStatus:           res.UserStatus,
+		Username:             res.Username,
+	}
 }
