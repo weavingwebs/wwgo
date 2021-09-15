@@ -280,6 +280,14 @@ func SqlNullUuidRef(v *uuid.UUID) uuid.NullUUID {
 	return uuid.NullUUID{UUID: *v, Valid: true}
 }
 
+// UuidRefFromSql will return nil for a 'null' SQL value.
+func UuidRefFromSql(v uuid.NullUUID) *uuid.UUID {
+	if !v.Valid {
+		return nil
+	}
+	return UuidRef(v.UUID)
+}
+
 // SqlNullDecimalRef will return a sql 'null' value if the pointer is nil.
 func SqlNullDecimalRef(v *decimal.Decimal) decimal.NullDecimal {
 	if v == nil {
