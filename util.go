@@ -107,6 +107,42 @@ func ArrayDiffStr(a []string, b []string) []string {
 	return diff
 }
 
+// ArrayDiffUuid returns a slice of all values from a that are not in b.
+func ArrayDiffUuid(a []uuid.UUID, b []uuid.UUID) []uuid.UUID {
+	diff := make([]uuid.UUID, 0)
+	for _, aItem := range a {
+		found := false
+		for _, bItem := range b {
+			if bItem == aItem {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diff = append(diff, aItem)
+		}
+	}
+	return diff
+}
+
+// ArrayDiffUuidRef returns a slice of all values from a that are not in b.
+func ArrayDiffUuidRef(a []*uuid.UUID, b []*uuid.UUID) []*uuid.UUID {
+	diff := make([]*uuid.UUID, 0)
+	for _, aItem := range a {
+		found := false
+		for _, bItem := range b {
+			if bItem == aItem {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diff = append(diff, aItem)
+		}
+	}
+	return diff
+}
+
 func ArrayFilterFnStr(a []string, fn func(v string) bool) []string {
 	res := make([]string, 0)
 	for _, v := range a {
