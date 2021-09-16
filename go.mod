@@ -16,7 +16,7 @@ require (
 	github.com/go-chi/cors v1.2.0
 	github.com/go-chi/httplog v0.2.0
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/golang-jwt/jwt v3.2.2+incompatible
+	github.com/golang-jwt/jwt/v4 v4.0.0
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -25,10 +25,11 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.23.0
+	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/simukti/sqldb-logger v0.0.0-20201125162808-c35f87e285f2
 	github.com/simukti/sqldb-logger/logadapter/zerologadapter v0.0.0-20201125162808-c35f87e285f2
 	github.com/stripe/stripe-go/v72 v72.61.0
-	github.com/subchen/go-trylock/v2 v2.0.0 // indirect
+	github.com/subchen/go-trylock/v2 v2.0.0
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vektah/gqlparser/v2 v2.2.0
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e

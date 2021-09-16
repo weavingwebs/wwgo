@@ -2,12 +2,13 @@ package wwauth
 
 import (
 	"context"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"net/http"
 	"strings"
+	"time"
 )
 
 var JwtCtxKey = &contextKey{"jwt"}
@@ -33,6 +34,13 @@ func JwtMiddleware(
 	log zerolog.Logger,
 	newClaims func() Claims,
 ) func(http.Handler) http.Handler {
+	// Manually allow for 1s clock drift to avoid IAT validation errors.
+	// @todo Remove this once IAT validation has been removed.
+	//   https://github.com/golang-jwt/jwt/issues/98
+	jwt.TimeFunc = func() time.Time {
+		return time.Now().Add(time.Second)
+	}
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Check for token.
