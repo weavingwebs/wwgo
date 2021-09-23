@@ -135,7 +135,9 @@ func (c *CognitoAuth) AdminResendTemporaryPassword(ctx context.Context, email st
 	return nil
 }
 
-func (c *CognitoAuth) AdminResetPassword(ctx context.Context, id string) (string, error) {
+// AdminSetTemporaryPassword sets the user's password to a temporary 'human'
+// password. The user will need to set a password when they login.
+func (c *CognitoAuth) AdminSetTemporaryPassword(ctx context.Context, id string) (string, error) {
 	tmpPassword := RandomHumanPassword()
 	_, err := c.idp.AdminSetUserPassword(ctx, &cognitoidentityprovider.AdminSetUserPasswordInput{
 		UserPoolId: aws.String(c.userPoolId),
