@@ -10,6 +10,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
+	"github.com/shopspring/decimal"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 	"github.com/weavingwebs/wwgo"
 	"github.com/weavingwebs/wwgo/wwgraphql/scalars"
@@ -103,7 +104,6 @@ type ValidateStringRules struct {
 func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateStringRules) (res interface{}, err error) {
 	values, ok := obj.(map[string]interface{})
 	if !ok {
-		// @todo gql internal error
 		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
 	}
 
@@ -183,7 +183,6 @@ type ValidateDateRelative struct {
 func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDateRules) (res interface{}, err error) {
 	values, ok := obj.(map[string]interface{})
 	if !ok {
-		// @todo gql internal error
 		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
 	}
 
@@ -254,6 +253,59 @@ func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Re
 				nil,
 			)
 		}
+	}
+
+	return next(ctx)
+}
+
+type ValidateDecimalRules struct {
+	Min *decimal.Decimal `json:"min"`
+	Max *decimal.Decimal `json:"max"`
+}
+
+func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDecimalRules) (res interface{}, err error) {
+	values, ok := obj.(map[string]interface{})
+	if !ok {
+		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+	}
+
+	// Get value.
+	fieldName := *graphql.GetPathContext(ctx).Field
+	rawValue, ok := values[fieldName]
+	if !ok {
+		// Do nothing if no value.
+		return next(ctx)
+	}
+	var value decimal.Decimal
+	switch v := rawValue.(type) {
+	case decimal.Decimal:
+		value = v
+
+	case *decimal.Decimal:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value = *v
+
+	default:
+		return nil, errors.Errorf("Invalid type for %s: %T", fieldName, value)
+	}
+
+	// Validate.
+	if rules.Min != nil && value.LessThan(*rules.Min) {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_DECIMAL_MIN_EXCEPTION",
+			fmt.Sprintf("Must be at least %s", rules.Min.String()),
+			nil,
+		)
+	}
+	if rules.Max != nil && value.GreaterThan(*rules.Max) {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_DECIMAL_MAX_EXCEPTION",
+			fmt.Sprintf("Must be no more than %s", rules.Max.String()),
+			nil,
+		)
 	}
 
 	return next(ctx)
