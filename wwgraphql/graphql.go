@@ -23,7 +23,7 @@ var MB int64 = 1 << 20
 var cognitoEmailRegexp = regexp.MustCompile(`[\p{L}\p{M}\p{S}\p{N}\p{P}]+`)
 var emailRegexp = regexp.MustCompile(`^[^\s]+@[^\s]+\.[^\s]+$`)
 
-func NewGraphQlServer(es graphql.ExecutableSchema, log zerolog.Logger) *handler.Server {
+func NewGraphQlServer(es graphql.ExecutableSchema, log zerolog.Logger, enableIntrospection bool) *handler.Server {
 	srv := handler.New(es)
 
 	srv.AddTransport(transport.Websocket{
@@ -37,7 +37,9 @@ func NewGraphQlServer(es graphql.ExecutableSchema, log zerolog.Logger) *handler.
 		MaxUploadSize: 16 * MB,
 	})
 
-	srv.Use(extension.Introspection{})
+	if enableIntrospection {
+		srv.Use(extension.Introspection{})
+	}
 
 	srv.SetErrorPresenter(DefaultErrorPresenter(log))
 
