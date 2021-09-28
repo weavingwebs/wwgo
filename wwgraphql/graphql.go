@@ -278,9 +278,50 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 	}
 	var value decimal.Decimal
 	switch v := rawValue.(type) {
+	case int:
+		value = decimal.New(int64(v), 0)
+	case *int:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value = decimal.New(int64(*v), 0)
+
+	case int32:
+		value = decimal.New(int64(v), 0)
+	case *int32:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value = decimal.New(int64(*v), 0)
+
+	case int64:
+		value = decimal.New(v, 0)
+	case *int64:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value = decimal.New(*v, 0)
+
+	case string:
+		value, err = decimal.NewFromString(v)
+		if err != nil {
+			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", "Invalid decimal", nil)
+		}
+	case *string:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value, err = decimal.NewFromString(*v)
+		if err != nil {
+			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", "Invalid decimal", nil)
+		}
+
 	case decimal.Decimal:
 		value = v
-
 	case *decimal.Decimal:
 		if v == nil {
 			// Ignore null.
