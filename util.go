@@ -131,7 +131,7 @@ func ArrayDiffUuidRef(a []*uuid.UUID, b []*uuid.UUID) []*uuid.UUID {
 	for _, aItem := range a {
 		found := false
 		for _, bItem := range b {
-			if bItem == aItem {
+			if *bItem == *aItem {
 				found = true
 				break
 			}
