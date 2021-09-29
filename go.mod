@@ -5,11 +5,12 @@ go 1.16
 require (
 	github.com/99designs/gqlgen v0.13.0
 	github.com/agnivade/levenshtein v1.1.1 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.6.0
+	github.com/aws/aws-sdk-go-v2 v1.9.1
 	github.com/aws/aws-sdk-go-v2/config v1.3.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.2.1
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.3.3
-	github.com/aws/smithy-go v1.4.0
+	github.com/aws/aws-sdk-go-v2/service/ses v1.6.1 // indirect
+	github.com/aws/smithy-go v1.8.0
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.3
