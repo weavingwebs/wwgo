@@ -22,6 +22,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/jmoiron/sqlx v1.3.4
+	github.com/joho/godotenv v1.4.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.5
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
