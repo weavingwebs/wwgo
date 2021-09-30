@@ -38,6 +38,7 @@ func main() {
 			Uid: 48,
 			Gid: 48,
 		},
+		Setpgid: true,
 	}
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
