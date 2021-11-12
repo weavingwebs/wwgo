@@ -186,7 +186,7 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler) http.Handle
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		sApi.log.Debug().Interface("webhookEvent", payload).Msgf("Stripe Webhook Event")
+		sApi.log.Trace().Interface("webhookPayload", payload).Msgf("Stripe Webhook Event")
 
 		// Parse the event.
 		event, err := webhook.ConstructEvent(
@@ -199,14 +199,15 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler) http.Handle
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		sApi.log.Trace().RawJSON("webhookEvent", event.Data.Raw).Msgf("Stripe Webhook Data")
 		sApi.log.Info().Msgf("Stripe webhook event %s received", event.ID)
 
 		// NOTE: We want to fully process the webhook event before returning a
 		// response so that if we fail, stripe will know.
 		resp, err := onWebhook(sApi, event)
 		if err != nil {
-			sApi.log.Err(errors.Wrap(err, "onWebhook failed")).Interface("payload", payload).Send()
-			w.WriteHeader(http.StatusServiceUnavailable)
+			sApi.log.Err(errors.Wrap(err, "onWebhook failed")).RawJSON("webhookEvent", event.Data.Raw).Send()
+			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write(resp)
 			return
 		}
