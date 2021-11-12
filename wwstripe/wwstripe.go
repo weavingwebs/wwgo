@@ -13,7 +13,7 @@ import (
 	"sync"
 )
 
-type StripeEventHandler func(stripeApi *Stripe, event stripe.Event) error
+type StripeEventHandler func(stripeApi *Stripe, event stripe.Event) ([]byte, error)
 
 type Stripe struct {
 	sc              *client.API
@@ -203,12 +203,15 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler) http.Handle
 
 		// NOTE: We want to fully process the webhook event before returning a
 		// response so that if we fail, stripe will know.
-		if err := onWebhook(sApi, event); err != nil {
+		resp, err := onWebhook(sApi, event)
+		if err != nil {
 			sApi.log.Err(errors.Wrap(err, "onWebhook failed")).Interface("payload", payload).Send()
 			w.WriteHeader(http.StatusServiceUnavailable)
+			_, _ = w.Write(resp)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(resp)
 	}
 }
 
