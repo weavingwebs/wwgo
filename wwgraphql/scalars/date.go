@@ -45,3 +45,28 @@ func (d GqlDate) MarshalGQL(w io.Writer) {
 	_, _ = w.Write([]byte(d.String()))
 	_, _ = w.Write([]byte(`"`))
 }
+
+func (d *GqlDate) UnmarshalJSON(data []byte) error {
+	// Ignore null, like in the main JSON package.
+	if string(data) == "null" {
+		return nil
+	}
+	t, err := time.Parse(`"`+GqlDateFormat+`"`, string(data))
+	*d = GqlDate(t)
+	return err
+}
+
+func (d GqlDate) MarshalJSON() ([]byte, error) {
+	if d.Time().IsZero() {
+		return []byte("null"), nil
+	}
+	if y := d.Time().Year(); y < 0 || y >= 10000 {
+		return nil, errors.New("GqlDate.MarshalJSON: year outside of range [0,9999]")
+	}
+
+	b := make([]byte, 0, len(GqlDateFormat)+2)
+	b = append(b, '"')
+	b = d.Time().AppendFormat(b, GqlDateFormat)
+	b = append(b, '"')
+	return b, nil
+}
