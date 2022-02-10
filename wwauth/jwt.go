@@ -34,11 +34,11 @@ func JwtMiddleware(
 	log zerolog.Logger,
 	newClaims func() Claims,
 ) func(http.Handler) http.Handler {
-	// Manually allow for 1s clock drift to avoid IAT validation errors.
+	// Manually allow for 10s clock drift to avoid IAT validation errors.
 	// @todo Remove this once IAT validation has been removed.
 	//   https://github.com/golang-jwt/jwt/issues/98
 	jwt.TimeFunc = func() time.Time {
-		return time.Now().Add(time.Second)
+		return time.Now().UTC().Add(10 * time.Second)
 	}
 
 	return func(next http.Handler) http.Handler {
