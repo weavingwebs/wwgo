@@ -28,14 +28,16 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/pkg/errors v0.9.1
-	github.com/rs/zerolog v1.23.0
-	github.com/shopspring/decimal v1.2.0
+	github.com/rs/zerolog v1.26.1
+	github.com/shopspring/decimal v1.3.1
 	github.com/simukti/sqldb-logger v0.0.0-20201125162808-c35f87e285f2
 	github.com/simukti/sqldb-logger/logadapter/zerologadapter v0.0.0-20201125162808-c35f87e285f2
 	github.com/stripe/stripe-go/v72 v72.61.0
 	github.com/subchen/go-trylock/v2 v2.0.0
 	github.com/urfave/cli/v2 v2.3.0
 	github.com/vektah/gqlparser/v2 v2.2.0
-	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
+	golang.org/x/crypto v0.0.0-20220210151621-f4118a5b28e2
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
+	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 )

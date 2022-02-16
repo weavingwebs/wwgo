@@ -330,7 +330,7 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 		value = *v
 
 	default:
-		return nil, errors.Errorf("Invalid type for %s: %T", fieldName, value)
+		return nil, errors.Errorf("Invalid type for %s: %T", fieldName, rawValue)
 	}
 
 	// Validate.
