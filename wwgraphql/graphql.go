@@ -278,6 +278,9 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 	}
 	var value decimal.Decimal
 	switch v := rawValue.(type) {
+	case nil:
+		return next(ctx)
+
 	case int:
 		value = decimal.New(int64(v), 0)
 	case *int:
