@@ -13,6 +13,7 @@ import (
 	"strings"
 	"text/template"
 	"time"
+	"unicode/utf8"
 )
 
 func GenerateRandomKey(length int) []byte {
@@ -461,4 +462,26 @@ func Plural(count int, singular string, plural string) string {
 		return singular
 	}
 	return plural
+}
+
+// TruncateStr multibyte/UTF-8 safe truncate to a maximum number of characters.
+func TruncateStr(str string, maxLen int) string {
+	if len([]rune(str)) < maxLen {
+		return str
+	}
+	return string([]rune(str)[:maxLen])
+}
+
+// TruncateStrBytes multibyte/UTF-8 safe truncate to a maximum number of bytes.
+func TruncateStrBytes(str string, maxBytes int) string {
+	end := 0
+	for i, r := range []rune(str) {
+		newEnd := utf8.RuneLen(r) + i
+		if newEnd <= maxBytes {
+			end = newEnd
+		} else {
+			break
+		}
+	}
+	return string([]byte(str)[:end])
 }
