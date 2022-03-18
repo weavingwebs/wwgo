@@ -17,7 +17,7 @@ require (
 	github.com/go-chi/cors v1.2.0
 	github.com/go-chi/httplog v0.2.0
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/golang-jwt/jwt/v4 v4.0.0
+	github.com/golang-jwt/jwt/v4 v4.4.0
 	github.com/golang-migrate/migrate/v4 v4.15.1
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect

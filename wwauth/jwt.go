@@ -18,21 +18,18 @@ type contextKey struct {
 }
 
 type Claims interface {
-	Valid() error
 	VerifyIssuer() bool
 	VerifyAudience() bool
-	GetStandardClaims() jwt.StandardClaims
+	GetStandardClaims() jwt.RegisteredClaims
 }
 
 // JwtMiddleware
 //
-// DANGER: It is very important for newClaims to return a fresh claims pointer,
+// DANGER: It is very important for parseClaims to use a fresh claims pointer,
 // otherwise all requests will share the same JWT claims pointer!
-// @todo is there a way to make this less dangerous while keeping it generic?
 func JwtMiddleware(
-	jwks jwk.Set,
 	log zerolog.Logger,
-	newClaims func() Claims,
+	parseClaims func(tokenStr string) (*jwt.Token, error),
 ) func(http.Handler) http.Handler {
 	// Manually allow for 10s clock drift to avoid IAT validation errors.
 	// @todo Remove this once IAT validation has been removed.
@@ -52,23 +49,7 @@ func JwtMiddleware(
 			}
 
 			// Parse the token.
-			claims := newClaims()
-			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-				kid, ok := token.Header["kid"].(string)
-				if !ok {
-					return nil, errors.New("kid header not found in jwt")
-				}
-				key, ok := jwks.LookupKeyID(kid)
-				if !ok {
-					return nil, errors.Errorf("key %v not found in jwks", kid)
-				}
-				if token.Method.Alg() != key.Algorithm() {
-					return nil, errors.Errorf("Invalid jwt method: %s", token.Method.Alg())
-				}
-
-				var raw interface{}
-				return raw, key.Raw(&raw)
-			})
+			token, err := parseClaims(tokenStr)
 			if err != nil {
 				if vErr, ok := err.(*jwt.ValidationError); ok {
 					if vErr.Errors&jwt.ValidationErrorExpired > 0 {
@@ -129,4 +110,23 @@ func TokenFromHeader(r *http.Request) string {
 		return bearer[7:]
 	}
 	return ""
+}
+
+func JwksKeyFunc(jwks jwk.Set) func(token *jwt.Token) (interface{}, error) {
+	return func(token *jwt.Token) (interface{}, error) {
+		kid, ok := token.Header["kid"].(string)
+		if !ok {
+			return nil, errors.New("kid header not found in jwt")
+		}
+		key, ok := jwks.LookupKeyID(kid)
+		if !ok {
+			return nil, errors.Errorf("key %v not found in jwks", kid)
+		}
+		if token.Method.Alg() != key.Algorithm() {
+			return nil, errors.Errorf("Invalid jwt method: %s", token.Method.Alg())
+		}
+
+		var raw interface{}
+		return raw, key.Raw(&raw)
+	}
 }
