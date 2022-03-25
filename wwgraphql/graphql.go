@@ -15,6 +15,7 @@ import (
 	"github.com/weavingwebs/wwgo"
 	"github.com/weavingwebs/wwgo/wwgraphql/scalars"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -348,6 +349,94 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 		return nil, wwgo.NewClientError(
 			"VALIDATE_DECIMAL_MAX_EXCEPTION",
 			fmt.Sprintf("Must be no more than %s", rules.Max.String()),
+			nil,
+		)
+	}
+
+	return next(ctx)
+}
+
+type ValidateIntRules struct {
+	Min *int `json:"min"`
+	Max *int `json:"max"`
+}
+
+func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateIntRules) (res interface{}, err error) {
+	values, ok := obj.(map[string]interface{})
+	if !ok {
+		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+	}
+
+	// Get value.
+	fieldName := *graphql.GetPathContext(ctx).Field
+	rawValue, ok := values[fieldName]
+	if !ok {
+		// Do nothing if no value.
+		return next(ctx)
+	}
+	var value int
+	switch v := rawValue.(type) {
+	case nil:
+		return next(ctx)
+
+	case int:
+		value = v
+	case *int:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value = *v
+
+	case int32:
+		value = int(v)
+	case *int32:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value = int(*v)
+
+	case int64:
+		value = int(v)
+	case *int64:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value = int(*v)
+
+	case string:
+		value, err = strconv.Atoi(v)
+		if err != nil {
+			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", "Invalid integer", nil)
+		}
+	case *string:
+		if v == nil {
+			// Ignore null.
+			return next(ctx)
+		}
+		value, err = strconv.Atoi(*v)
+		if err != nil {
+			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", "Invalid integer", nil)
+		}
+
+	default:
+		return nil, errors.Errorf("Invalid type for %s: %T", fieldName, rawValue)
+	}
+
+	// Validate.
+	if rules.Min != nil && value < *rules.Min {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_INT_MIN_EXCEPTION",
+			fmt.Sprintf("Must be at least %d", *rules.Min),
+			nil,
+		)
+	}
+	if rules.Max != nil && value > *rules.Max {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_INT_MAX_EXCEPTION",
+			fmt.Sprintf("Must be no more than %d", *rules.Max),
 			nil,
 		)
 	}
