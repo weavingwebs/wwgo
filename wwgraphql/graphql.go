@@ -2,6 +2,7 @@ package wwgraphql
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/errcode"
@@ -324,6 +325,12 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", "Invalid decimal", nil)
 		}
 
+	case json.Number:
+		value, err = decimal.NewFromString(v.String())
+		if err != nil {
+			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", "Invalid decimal", nil)
+		}
+
 	case decimal.Decimal:
 		value = v
 	case *decimal.Decimal:
@@ -417,6 +424,12 @@ func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Res
 			return next(ctx)
 		}
 		value, err = strconv.Atoi(*v)
+		if err != nil {
+			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", "Invalid integer", nil)
+		}
+
+	case json.Number:
+		value, err = strconv.Atoi(v.String())
 		if err != nil {
 			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", "Invalid integer", nil)
 		}
