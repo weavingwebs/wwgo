@@ -16,6 +16,7 @@ func NewRouter(logger zerolog.Logger, serviceName string) *chi.Mux {
 	r.Use(middleware.SetHeader("X-Clacks-Overhead", "GNU Terry Pratchett"))
 	r.Use(httplog.Handler(httpLogger.Logger()))
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
 	r.Use(RequestIDHeaderMiddleware)
 	r.Use(IpContextMiddleware)
 	r.Use(middleware.ThrottleBacklog(100, 200, 60*time.Second))
