@@ -32,6 +32,22 @@ type CognitoAuthPublicSettings struct {
 func NewCognitoAuth(
 	log zerolog.Logger,
 	awsConfig aws.Config,
+	userPoolId string,
+	clientId string,
+) *CognitoAuth {
+	idp := cognitoidentityprovider.NewFromConfig(awsConfig)
+	return &CognitoAuth{
+		awsConfig:  awsConfig,
+		idp:        idp,
+		log:        log,
+		userPoolId: userPoolId,
+		clientId:   clientId,
+	}
+}
+
+func NewCognitoAuthFromEnv(
+	log zerolog.Logger,
+	awsConfig aws.Config,
 ) *CognitoAuth {
 	userPoolId := os.Getenv("AUTH_COGNITO_POOL_ID")
 	if userPoolId == "" {
@@ -42,14 +58,7 @@ func NewCognitoAuth(
 		panic("AUTH_AUD is not set")
 	}
 
-	idp := cognitoidentityprovider.NewFromConfig(awsConfig)
-	return &CognitoAuth{
-		awsConfig:  awsConfig,
-		idp:        idp,
-		log:        log,
-		userPoolId: userPoolId,
-		clientId:   clientId,
-	}
+	return NewCognitoAuth(log, awsConfig, userPoolId, clientId)
 }
 
 func (c *CognitoAuth) PublicSettings() CognitoAuthPublicSettings {
