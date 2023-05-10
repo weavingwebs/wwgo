@@ -3,9 +3,9 @@ package wwstripe
 import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/stripe/stripe-go/v72"
-	"github.com/stripe/stripe-go/v72/client"
-	"github.com/stripe/stripe-go/v72/webhook"
+	"github.com/stripe/stripe-go/v74"
+	"github.com/stripe/stripe-go/v74/client"
+	"github.com/stripe/stripe-go/v74/webhook"
 	"io/ioutil"
 	"net/http"
 	"os"
