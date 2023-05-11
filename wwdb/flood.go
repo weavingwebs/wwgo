@@ -118,7 +118,7 @@ func FloodGetSummary(ctx context.Context, dbConn *sqlx.DB) ([]*FloodSummaryItem,
 	return res, nil
 }
 
-func FloodCommand(dbConn *sqlx.DB) *cli.Command {
+func FloodCommand(dbConn func() *sqlx.DB) *cli.Command {
 	return &cli.Command{
 		Name:  "flood",
 		Usage: "Flood commands",
@@ -127,7 +127,7 @@ func FloodCommand(dbConn *sqlx.DB) *cli.Command {
 				Name:  "get",
 				Usage: "Get a summary of flood hits",
 				Action: func(ctx *cli.Context) error {
-					summary, err := FloodGetSummary(ctx.Context, dbConn)
+					summary, err := FloodGetSummary(ctx.Context, dbConn())
 					if err != nil {
 						return err
 					}
@@ -166,7 +166,7 @@ func FloodCommand(dbConn *sqlx.DB) *cli.Command {
 						os.Exit(1)
 					}
 					ip := ctx.Args().Get(0)
-					res, err := FloodUnban(ctx.Context, dbConn, ip)
+					res, err := FloodUnban(ctx.Context, dbConn(), ip)
 					if err != nil {
 						return err
 					}
