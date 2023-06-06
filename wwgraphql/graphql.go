@@ -101,6 +101,7 @@ type ValidateStringRules struct {
 	MinLength *int    `json:"minLength"`
 	MaxLength *int    `json:"maxLength"`
 	Pattern   *string `json:"pattern"`
+	RegExp    *string `json:"regExp"`
 }
 
 func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateStringRules) (res interface{}, err error) {
@@ -160,6 +161,22 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 				return nil, wwgo.NewClientError(
 					"VALIDATE_STRING_PATTERN_EMAIL_FORMAT_EXCEPTION",
 					"Please enter a valid email address",
+					nil,
+				)
+			}
+
+		case "REGEX":
+			if rules.RegExp == nil || *rules.RegExp == "" {
+				return nil, errors.New("RegExp is required when Pattern is set to 'REGEX'")
+			}
+			exp, err := regexp.Compile(*rules.RegExp)
+			if err != nil {
+				return nil, errors.Wrap(err, "Invalid RegExp")
+			}
+			if !exp.MatchString(str) {
+				return nil, wwgo.NewClientError(
+					"VALIDATE_STRING_PATTERN_REGEXP_EXCEPTION",
+					"Invalid format",
 					nil,
 				)
 			}
