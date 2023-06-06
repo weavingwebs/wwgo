@@ -28,17 +28,23 @@ func RequestIDHeaderMiddleware(next http.Handler) http.Handler {
 
 func IpContextMiddleware(next http.Handler) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
-		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-		userIP := net.ParseIP(ip)
-		ctx := context.WithValue(r.Context(), remoteAddrCtxKey, userIP)
+		var ip net.IP
+		cfContext := CloudflareFromContext(r.Context())
+		if cfContext.IsFromCloudflare && cfContext.ClientIp != nil {
+			ip = cfContext.ClientIp
+		} else {
+			ipStr, _, _ := net.SplitHostPort(r.RemoteAddr)
+			ip = net.ParseIP(ipStr)
+		}
+		ctx := context.WithValue(r.Context(), remoteAddrCtxKey, ip)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	}
 	return http.HandlerFunc(fn)
 }
 
 func IpForContext(ctx context.Context) net.IP {
-	token, _ := ctx.Value(remoteAddrCtxKey).(net.IP)
-	return token
+	ip, _ := ctx.Value(remoteAddrCtxKey).(net.IP)
+	return ip
 }
 
 func CorsMiddleware(allowedOrigins []string) func(next http.Handler) http.Handler {
