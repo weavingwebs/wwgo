@@ -35,14 +35,14 @@ func MysqlDbMigrate(db *sqlx.DB, migrations *bindata.AssetSource) (*migrate.Migr
 	return migrator, nil
 }
 
-func MigrateCommand(migrator *migrate.Migrate) *cli.Command {
+func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
 	return &cli.Command{
 		Name: "migrate",
 		Subcommands: []*cli.Command{
 			{
 				Name: "up",
 				Action: func(ctx *cli.Context) error {
-					if err := migrator.Up(); err != nil {
+					if err := migrator().Up(); err != nil {
 						if err != migrate.ErrNoChange {
 							return err
 						}
@@ -59,7 +59,7 @@ func MigrateCommand(migrator *migrate.Migrate) *cli.Command {
 						fmt.Println("cancelled")
 						return nil
 					}
-					if err := migrator.Steps(-1); err != nil {
+					if err := migrator().Steps(-1); err != nil {
 						return err
 					}
 					fmt.Println("👍️")
@@ -75,7 +75,7 @@ func MigrateCommand(migrator *migrate.Migrate) *cli.Command {
 					},
 				},
 				Action: func(ctx *cli.Context) error {
-					if err := migrator.Force(ctx.Int("version")); err != nil {
+					if err := migrator().Force(ctx.Int("version")); err != nil {
 						return err
 					}
 					fmt.Println("👍️")
@@ -89,7 +89,7 @@ func MigrateCommand(migrator *migrate.Migrate) *cli.Command {
 						fmt.Println("cancelled")
 						return nil
 					}
-					if err := migrator.Drop(); err != nil {
+					if err := migrator().Drop(); err != nil {
 						return err
 					}
 					fmt.Println("👍️")
