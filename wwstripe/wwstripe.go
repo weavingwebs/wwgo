@@ -121,15 +121,46 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 				}
 
 				// If the API version is not the same, we need to recreate the webhook.
+				// NOTE: Disable rather than delete so we don't lose any events.
 				if we.APIVersion != stripe.APIVersion {
-					sApi.log.Info().Msgf("Stripe Webhook API version is incorrect: %s, expected: %s. Recreating webhook.", we.APIVersion, stripe.APIVersion)
+					sApi.log.Info().Msgf("Stripe Webhook API version miss-match: %s, SDK version: %s. Recreating webhook.", we.APIVersion, stripe.APIVersion)
 					sApi.log.Debug().Interface("webhook", we).Msgf("Stripe Webhook")
-					if _, err := sApi.sc.WebhookEndpoints.Del(we.ID, &stripe.WebhookEndpointParams{}); err != nil {
-						err = errors.Wrap(err, "error deleting webhook")
+
+					// If there are any pending events, abort (they are not going to work
+					// with the new API version).
+					sApi.log.Debug().Msgf("Checking for pending events")
+					events := sApi.sc.Events.List(&stripe.EventListParams{
+						DeliverySuccess: stripe.Bool(false),
+					})
+					var pendingEvents []string
+					for events.Next() {
+						if events.Event().PendingWebhooks > 0 {
+							pendingEvents = append(pendingEvents, events.Event().ID)
+						}
+					}
+					if err := events.Err(); err != nil {
+						err = errors.Wrap(err, "failed to check for pending events")
 						sApi.log.Err(err).Send()
 						onFail(err)
 						return
 					}
+					if len(pendingEvents) > 0 {
+						err := errors.Errorf("Cannot migrate webhook to new API version (%s) because there are %d pending events. The server must be downgraded to clear these events before upgrading. Pending events: %s", stripe.APIVersion, len(pendingEvents), strings.Join(pendingEvents, ", "))
+						sApi.log.Err(err).Send()
+						onFail(err)
+						return
+					}
+
+					// Disable the old webhook.
+					if _, err := sApi.sc.WebhookEndpoints.Update(we.ID, &stripe.WebhookEndpointParams{
+						Disabled: stripe.Bool(true),
+					}); err != nil {
+						err = errors.Wrap(err, "error disabling webhook")
+						sApi.log.Err(err).Send()
+						onFail(err)
+						return
+					}
+					sApi.log.Info().Msgf("Stripe Webhook disabled: " + we.ID)
 
 					// Re-create the webhook.
 					if _, err := sApi.CreateWebhook(input); err != nil {
