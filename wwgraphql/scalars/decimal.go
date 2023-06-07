@@ -28,8 +28,12 @@ func UnmarshalDecimalScalar(v interface{}) (*decimal.Decimal, error) {
 		switch v := v.(type) {
 		case string:
 			return decimal.NewFromString(v)
+		case int:
+			return decimal.NewFromInt(int64(v)), nil
+		case int64:
+			return decimal.NewFromInt(v), nil
 		default:
-			return decimal.Zero, fmt.Errorf("%T is not a string", v)
+			return decimal.Zero, fmt.Errorf("%T is not a string or int", v)
 		}
 	}()
 	return &val, err
