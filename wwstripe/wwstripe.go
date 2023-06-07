@@ -108,8 +108,8 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 		i := sApi.sc.WebhookEndpoints.List(listParams)
 		for i.Next() {
 			we := i.WebhookEndpoint()
-			if we.URL == input.Url {
-				if we.Status == "enabled" && eventsMatch(we.EnabledEvents, enabledEvents) && we.APIVersion == stripe.APIVersion {
+			if we.URL == input.Url && we.Status == "enabled" {
+				if eventsMatch(we.EnabledEvents, enabledEvents) && we.APIVersion == stripe.APIVersion {
 					sApi.log.Info().Msgf("Stripe Webhook already setup: " + we.ID)
 					sApi.log.Debug().Interface("webhook", we).Msgf("Stripe Webhook")
 
