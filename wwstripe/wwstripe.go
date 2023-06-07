@@ -6,7 +6,7 @@ import (
 	"github.com/stripe/stripe-go/v74"
 	"github.com/stripe/stripe-go/v74/client"
 	"github.com/stripe/stripe-go/v74/webhook"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strings"
@@ -109,7 +109,7 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 		for i.Next() {
 			we := i.WebhookEndpoint()
 			if we.URL == input.Url {
-				if we.Status == "enabled" && eventsMatch(we.EnabledEvents, enabledEvents) {
+				if we.Status == "enabled" && eventsMatch(we.EnabledEvents, enabledEvents) && we.APIVersion == stripe.APIVersion {
 					sApi.log.Info().Msgf("Stripe Webhook already setup: " + we.ID)
 					sApi.log.Debug().Interface("webhook", we).Msgf("Stripe Webhook")
 
@@ -117,6 +117,27 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 						onFail(ErrNoWebhookSecret)
 					}
 
+					return
+				}
+
+				// If the API version is not the same, we need to recreate the webhook.
+				if we.APIVersion != stripe.APIVersion {
+					sApi.log.Info().Msgf("Stripe Webhook API version is incorrect: %s, expected: %s. Recreating webhook.", we.APIVersion, stripe.APIVersion)
+					sApi.log.Debug().Interface("webhook", we).Msgf("Stripe Webhook")
+					if _, err := sApi.sc.WebhookEndpoints.Del(we.ID, &stripe.WebhookEndpointParams{}); err != nil {
+						err = errors.Wrap(err, "error deleting webhook")
+						sApi.log.Err(err).Send()
+						onFail(err)
+						return
+					}
+
+					// Re-create the webhook.
+					if _, err := sApi.CreateWebhook(input); err != nil {
+						err = errors.Wrap(err, "error creating webhook")
+						sApi.log.Err(err).Send()
+						onFail(err)
+						return
+					}
 					return
 				}
 
@@ -130,7 +151,9 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 					params,
 				)
 				if err != nil {
-					sApi.log.Err(errors.Wrap(err, "error updating webhook")).Send()
+					err = errors.Wrap(err, "error updating webhook")
+					sApi.log.Err(err).Send()
+					onFail(err)
 					return
 				}
 				sApi.log.Info().Msgf("Stripe Webhook updated: " + we.ID)
@@ -163,6 +186,7 @@ func (sApi *Stripe) CreateWebhook(input WebhookInput) (*stripe.WebhookEndpoint, 
 	params := &stripe.WebhookEndpointParams{
 		URL:           stripe.String(input.Url),
 		EnabledEvents: input.stripeEvents(),
+		APIVersion:    stripe.String(stripe.APIVersion),
 	}
 	we, err := sApi.sc.WebhookEndpoints.New(
 		params,
@@ -175,12 +199,12 @@ func (sApi *Stripe) CreateWebhook(input WebhookInput) (*stripe.WebhookEndpoint, 
 	return we, nil
 }
 
-func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler) http.HandlerFunc {
+func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler, onError func(err error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		// Read request body.
 		const MaxBodyBytes = int64(65536)
 		req.Body = http.MaxBytesReader(w, req.Body, MaxBodyBytes)
-		payload, err := ioutil.ReadAll(req.Body)
+		payload, err := io.ReadAll(req.Body)
 		if err != nil {
 			sApi.log.Err(errors.Wrap(err, "error reading stripe webhook payload")).Send()
 			w.WriteHeader(http.StatusBadRequest)
@@ -195,7 +219,9 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler) http.Handle
 			sApi.webhookSecret,
 		)
 		if err != nil {
-			sApi.log.Err(errors.Wrap(err, "error parsing stripe webhook event")).Interface("payload", payload).Send()
+			err = errors.Wrap(err, "error parsing stripe webhook event")
+			sApi.log.Err(err).Interface("payload", payload).Send()
+			onError(err)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -206,7 +232,9 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler) http.Handle
 		// response so that if we fail, stripe will know.
 		resp, err := onWebhook(sApi, event)
 		if err != nil {
-			sApi.log.Err(errors.Wrap(err, "onWebhook failed")).RawJSON("webhookEvent", event.Data.Raw).Send()
+			err = errors.Wrap(err, "onWebhook failed")
+			sApi.log.Err(err).RawJSON("webhookEvent", event.Data.Raw).Send()
+			onError(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			_, _ = w.Write(resp)
 			return
