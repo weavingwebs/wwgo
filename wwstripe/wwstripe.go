@@ -208,7 +208,7 @@ func (sApi *Stripe) CreateWebhook(input WebhookInput) (*stripe.WebhookEndpoint, 
 	i := sApi.sc.WebhookEndpoints.List(listParams)
 	for i.Next() {
 		we := i.WebhookEndpoint()
-		if we.URL == input.Url {
+		if we.URL == input.Url && we.Status == "enabled" {
 			return nil, errors.Errorf("Webhook already exists for %s: %s", input.Url, we.ID)
 		}
 	}
