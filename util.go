@@ -249,20 +249,55 @@ func IntRef(v int) *int {
 	return &v
 }
 
+func IntFromRef(v *int) int {
+	if v == nil {
+		return 0
+	}
+	return *v
+}
+
 func Int32Ref(v int32) *int32 {
 	return &v
+}
+
+func Int32FromRef(v *int32) int32 {
+	if v == nil {
+		return 0
+	}
+	return *v
 }
 
 func Int64Ref(v int64) *int64 {
 	return &v
 }
 
+func Int64FromRef(v *int64) int64 {
+	if v == nil {
+		return 0
+	}
+	return *v
+}
+
 func TimeRef(v time.Time) *time.Time {
 	return &v
 }
 
+func TimeFromRef(v *time.Time) time.Time {
+	if v == nil {
+		return time.Time{}
+	}
+	return *v
+}
+
 func DecimalRef(v decimal.Decimal) *decimal.Decimal {
 	return &v
+}
+
+func DecimalFromRef(v *decimal.Decimal) decimal.Decimal {
+	if v == nil {
+		return decimal.Decimal{}
+	}
+	return *v
 }
 
 // SqlNullStr will return a sql 'null' value if the string is empty.
