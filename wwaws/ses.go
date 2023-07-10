@@ -49,7 +49,7 @@ func NewSesMailerFromEnv(
 ) *SesMailer {
 	fromAddress := os.Getenv("MAIL_FROM_ADDRESS")
 	if fromAddress == "" {
-		panic("MAILER_FROM_ADDRESS is not set")
+		panic("MAIL_FROM_ADDRESS is not set")
 	}
 	var safeEmailDomains []string
 	if os.Getenv("EMAIL_ANY_ADDRESS") != "1" {
