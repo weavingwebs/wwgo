@@ -51,23 +51,7 @@ func JwtMiddleware(
 			}
 
 			// Parse the token.
-			claims := newClaims()
-			token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
-				kid, ok := token.Header["kid"].(string)
-				if !ok {
-					return nil, errors.New("kid header not found in jwt")
-				}
-				key, ok := jwks.LookupKeyID(kid)
-				if !ok {
-					return nil, errors.Errorf("key %v not found in jwks", kid)
-				}
-				if token.Method.Alg() != key.Algorithm() {
-					return nil, errors.Errorf("Invalid jwt method: %s", token.Method.Alg())
-				}
-
-				var raw interface{}
-				return raw, key.Raw(&raw)
-			})
+			token, err := ParseJwt(jwks, tokenStr, newClaims)
 			if err != nil {
 				if vErr, ok := err.(*jwt.ValidationError); ok {
 					if vErr.Errors&jwt.ValidationErrorExpired > 0 {
@@ -76,12 +60,19 @@ func JwtMiddleware(
 						http.Error(w, "JWT IAT validation failed", 401)
 					} else if vErr.Errors&jwt.ValidationErrorNotValidYet > 0 {
 						http.Error(w, "JWT is not valid yet", 401)
+					} else if vErr.Errors&jwt.ValidationErrorNotValidYet > 0 {
 					} else {
 						http.Error(w, "JWT validation error", 401)
 					}
 
 					log.Error().Err(vErr).Stack().Msg("JWT validation error")
 					return
+				} else if errors.Is(err, jwt.ErrTokenInvalidIssuer) {
+					http.Error(w, "Invalid JWT issuer", 401)
+				} else if errors.Is(err, jwt.ErrTokenInvalidAudience) {
+					http.Error(w, "Invalid JWT audience", 401)
+				} else if errors.Is(err, jwt.ErrTokenInvalidClaims) {
+					http.Error(w, "Invalid JWT claims", 401)
 				} else {
 					log.Error().Err(err).Stack().Msg("Generic JWT error")
 				}
@@ -89,37 +80,57 @@ func JwtMiddleware(
 				return
 			}
 
-			// Check the validity of the token.
-			if !token.Valid {
-				log.Warn().Err(err).Msg("Invalid token")
-				http.Error(w, "Invalid JWT", 401)
-				return
-			}
-
-			// Verify issuer.
-			if tokenClaims, ok := token.Claims.(Claims); ok {
-				if !tokenClaims.VerifyIssuer() {
-					log.Warn().Msgf("Invalid JWT issuer: %s", tokenClaims.GetStandardClaims().Issuer)
-					http.Error(w, "Invalid JWT", 401)
-					return
-				}
-				if !tokenClaims.VerifyAudience() {
-					log.Warn().Msgf("Invalid JWT audience: %s", tokenClaims.GetStandardClaims().Audience)
-					http.Error(w, "Invalid JWT", 401)
-					return
-				}
-				log.Debug().Msgf("JWT claims user is %s", tokenClaims.GetStandardClaims().Subject)
-			} else {
-				log.Warn().Msgf("unknown type of Claims in jwt: %T", token.Claims)
-				http.Error(w, "Invalid JWT claims", 400)
-				return
-			}
-
 			// Add to context.
-			ctx := context.WithValue(r.Context(), JwtCtxKey, token)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			next.ServeHTTP(w, r.WithContext(ContextWithJwt(r.Context(), token)))
 		})
 	}
+}
+
+// ParseJwt
+//
+// DANGER: It is very important for newClaims to return a fresh claims pointer,
+// otherwise all requests will share the same JWT claims pointer!
+func ParseJwt(jwks jwk.Set, tokenStr string, newClaims func() Claims) (*jwt.Token, error) {
+	// Parse the token.
+	claims := newClaims()
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		kid, ok := token.Header["kid"].(string)
+		if !ok {
+			return nil, errors.New("kid header not found in jwt")
+		}
+		key, ok := jwks.LookupKeyID(kid)
+		if !ok {
+			return nil, errors.Errorf("key %v not found in jwks", kid)
+		}
+		if token.Method.Alg() != key.Algorithm() {
+			return nil, errors.Errorf("Invalid jwt method: %s", token.Method.Alg())
+		}
+
+		var raw interface{}
+		return raw, key.Raw(&raw)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Check the validity of the token.
+	if !token.Valid {
+		return nil, errors.Errorf("Invalid token")
+	}
+
+	// Verify issuer.
+	if tokenClaims, ok := token.Claims.(Claims); ok {
+		if !tokenClaims.VerifyIssuer() {
+			return nil, errors.Wrapf(jwt.ErrTokenInvalidIssuer, "Invalid JWT issuer: %s", tokenClaims.GetStandardClaims().Issuer)
+		}
+		if !tokenClaims.VerifyAudience() {
+			return nil, errors.Wrapf(jwt.ErrTokenInvalidAudience, "Invalid JWT audience: %s", tokenClaims.GetStandardClaims().Audience)
+		}
+	} else {
+		return nil, errors.Wrapf(jwt.ErrTokenInvalidClaims, "unknown type of Claims in jwt: %T", token.Claims)
+	}
+
+	return token, nil
 }
 
 func TokenFromHeader(r *http.Request) string {
@@ -128,4 +139,8 @@ func TokenFromHeader(r *http.Request) string {
 		return bearer[7:]
 	}
 	return ""
+}
+
+func ContextWithJwt(ctx context.Context, token *jwt.Token) context.Context {
+	return context.WithValue(ctx, JwtCtxKey, token)
 }
