@@ -22,9 +22,10 @@ type SesMailer struct {
 }
 
 type Email struct {
-	To       []string
-	Subject  string
-	HtmlBody string
+	FromLabel string
+	To        []string
+	Subject   string
+	HtmlBody  string
 }
 
 func NewSesMailer(
@@ -65,6 +66,10 @@ func (s *SesMailer) Send(ctx context.Context, email Email) error {
 		s.log.Warn().Msgf("No email was sent")
 		return nil
 	}
+	source := s.fromAddress
+	if email.FromLabel != "" {
+		source = email.FromLabel + " <" + s.fromAddress + ">"
+	}
 
 	_, err := s.sesClient.SendEmail(ctx, &ses.SendEmailInput{
 		Destination: &types.Destination{
@@ -82,7 +87,7 @@ func (s *SesMailer) Send(ctx context.Context, email Email) error {
 				Data:    aws.String(email.Subject),
 			},
 		},
-		Source: aws.String(s.fromAddress),
+		Source: aws.String(source),
 	})
 
 	if err != nil {
