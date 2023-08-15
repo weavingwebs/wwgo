@@ -219,7 +219,7 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler, onError fun
 		// response so that if we fail, stripe will know.
 		resp, err := onWebhook(sApi, event)
 		if err != nil {
-			err = errors.Wrap(err, "onWebhook failed")
+			err = errors.Wrapf(err, "onWebhook failed to process event %s", event.ID)
 			sApi.log.Err(err).RawJSON("webhookEvent", event.Data.Raw).Send()
 			onError(err)
 			w.WriteHeader(http.StatusInternalServerError)
