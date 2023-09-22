@@ -86,7 +86,7 @@ func (auth *JwtAuth) ParseJwt(tokenStr string) (*jwt.Token, error) {
 			return nil, errors.Errorf("key %v not found in jwks", kid)
 		}
 		if token.Method.Alg() != key.Algorithm() {
-			return nil, errors.Errorf("Invalid jwt method: %s", token.Method.Alg())
+			return nil, errors.Errorf("Invalid jwt method: %s (expected %s)", token.Method.Alg(), key.Algorithm())
 		}
 
 		var raw interface{}
