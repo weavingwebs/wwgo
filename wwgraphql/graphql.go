@@ -119,6 +119,9 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 	}
 	var str string
 	switch s := value.(type) {
+	case nil:
+		return next(ctx)
+
 	case string:
 		str = s
 
@@ -214,6 +217,9 @@ func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Re
 	}
 	var date time.Time
 	switch v := value.(type) {
+	case nil:
+		return next(ctx)
+
 	case time.Time:
 		date = v
 
