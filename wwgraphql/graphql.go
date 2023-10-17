@@ -53,7 +53,8 @@ func DefaultErrorPresenter(log zerolog.Logger) func(ctx context.Context, e error
 	return func(ctx context.Context, e error) *gqlerror.Error {
 		// Always log all errors, if it's wrapped by GQL then log the original.
 		logEvt := log.Error().Stack()
-		gqlErr, ok := e.(*gqlerror.Error)
+		var gqlErr *gqlerror.Error
+		ok := errors.As(e, &gqlErr)
 		var originalErr error
 		if ok {
 			originalErr = gqlErr.Unwrap()
