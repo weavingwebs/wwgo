@@ -13,13 +13,22 @@ import (
 	"time"
 )
 
-type NewJwtAuthFromEntraInput struct {
-	Log      zerolog.Logger
-	TenantId string
-	ClientId string
+type EntraAuth struct {
+	*JwtAuth
+	EntraPublicSettings
 }
 
-func NewJwtAuthFromEntra(ctx context.Context, input NewJwtAuthFromEntraInput) (*JwtAuth, error) {
+type EntraPublicSettings struct {
+	TenantId string `json:"tenantId"`
+	ClientId string `json:"clientId"`
+}
+
+type NewEntraAuthInput struct {
+	Log zerolog.Logger
+	EntraPublicSettings
+}
+
+func NewEntraAuth(ctx context.Context, input NewEntraAuthInput) (*EntraAuth, error) {
 	config, err := getOidcConfig(ctx, "https://login.microsoftonline.com/"+input.TenantId+"/v2.0/.well-known/openid-configuration")
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting OIDC config")
@@ -32,14 +41,19 @@ func NewJwtAuthFromEntra(ctx context.Context, input NewJwtAuthFromEntraInput) (*
 	}
 	input.Log.Info().Msgf("Downloaded JWKs from %s", config.JwksUri)
 
-	return NewJwtAuth(input.Log, JwtAuthOpt{
+	jwtAuth := NewJwtAuth(input.Log, JwtAuthOpt{
 		Jwks:     jwks,
 		Issuer:   config.Issuer,
 		Audience: input.ClientId,
 		NewClaims: func() jwt.Claims {
 			return &EntraClaims{}
 		},
-	}), nil
+	})
+
+	return &EntraAuth{
+		JwtAuth:             jwtAuth,
+		EntraPublicSettings: input.EntraPublicSettings,
+	}, nil
 }
 
 type EntraClaims struct {
