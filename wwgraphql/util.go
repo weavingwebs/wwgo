@@ -9,7 +9,7 @@ import (
 // GqlHasFields will return true if any of the target fields exist.
 func GqlHasFields(fields []graphql.CollectedField, targetFields ...string) bool {
 	for _, f := range fields {
-		if wwgo.ArrayIncludesStr(targetFields, f.Name) {
+		if wwgo.SliceIncludes(targetFields, f.Name) {
 			return true
 		}
 	}

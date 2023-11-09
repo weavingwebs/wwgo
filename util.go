@@ -55,156 +55,81 @@ func FormatDate(t time.Time, format string) string {
 }
 
 // ArrayDiffInt32 returns a slice of all values from a that are not in b.
+// Deprecated: use DiffSlice instead.
 func ArrayDiffInt32(a []int32, b []int32) []int32 {
-	diff := make([]int32, 0)
-	for _, aItem := range a {
-		found := false
-		for _, bItem := range b {
-			if bItem == aItem {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, aItem)
-		}
-	}
-	return diff
+	return DiffSlice(a, b)
 }
 
 // ArrayDiffInt returns a slice of all values from a that are not in b.
+// Deprecated: use DiffSlice instead.
 func ArrayDiffInt(a []int, b []int) []int {
-	diff := make([]int, 0)
-	for _, aItem := range a {
-		found := false
-		for _, bItem := range b {
-			if bItem == aItem {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, aItem)
-		}
-	}
-	return diff
+	return DiffSlice(a, b)
 }
 
 // ArrayDiffStr returns a slice of all values from a that are not in b.
+// Deprecated: use DiffSlice instead.
 func ArrayDiffStr(a []string, b []string) []string {
-	diff := make([]string, 0)
-	for _, aItem := range a {
-		found := false
-		for _, bItem := range b {
-			if bItem == aItem {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, aItem)
-		}
-	}
-	return diff
+	return DiffSlice(a, b)
 }
 
 // ArrayDiffUuid returns a slice of all values from a that are not in b.
+// Deprecated: use DiffSlice instead.
 func ArrayDiffUuid(a []uuid.UUID, b []uuid.UUID) []uuid.UUID {
-	diff := make([]uuid.UUID, 0)
-	for _, aItem := range a {
-		found := false
-		for _, bItem := range b {
-			if bItem == aItem {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, aItem)
-		}
-	}
-	return diff
+	return DiffSlice(a, b)
 }
 
 // ArrayDiffUuidRef returns a slice of all values from a that are not in b.
+// Deprecated: use DiffSlice instead.
 func ArrayDiffUuidRef(a []*uuid.UUID, b []*uuid.UUID) []*uuid.UUID {
-	diff := make([]*uuid.UUID, 0)
-	for _, aItem := range a {
-		found := false
-		for _, bItem := range b {
-			if *bItem == *aItem {
-				found = true
-				break
-			}
-		}
-		if !found {
-			diff = append(diff, aItem)
-		}
-	}
-	return diff
+	return DiffSlice(a, b)
 }
 
+// ArrayFilterFnStr returns a slice of all values from a that pass the filter function.
+// Deprecated: use FilterSlice instead.
 func ArrayFilterFnStr(a []string, fn func(v string) bool) []string {
-	res := make([]string, 0)
-	for _, v := range a {
-		if fn(v) {
-			res = append(res, v)
-		}
-	}
-	return res
+	return FilterSlice(a, fn)
 }
 
+// ArrayFilterStr returns a slice of all values from a that are not empty.
 func ArrayFilterStr(a []string) []string {
-	return ArrayFilterFnStr(a, func(v string) bool {
+	return FilterSlice(a, func(v string) bool {
 		return v != ""
 	})
 }
 
+// ArrayMapStr returns a slice of all values from a mapped by fn().
+// Deprecated: use MapSlice instead.
 func ArrayMapStr(a []string, fn func(v string) string) []string {
-	for i := range a {
-		a[i] = fn(a[i])
-	}
-	return a
+	return MapSlice(a, fn)
 }
 
+// ArrayFilterAndJoinStr returns a string of all values from a that are not empty, joined by sep.
 func ArrayFilterAndJoinStr(a []string, sep string) string {
-	return strings.Join(ArrayFilterStr(ArrayMapStr(a, strings.TrimSpace)), sep)
+	return strings.Join(ArrayFilterStr(MapSlice(a, strings.TrimSpace)), sep)
 }
 
+// ArrayIncludesInt returns true if the slice contains the value.
+// Deprecated: use SliceIncludes instead.
 func ArrayIncludesInt(haystack []int, needle int) bool {
-	for _, v := range haystack {
-		if v == needle {
-			return true
-		}
-	}
-	return false
+	return SliceIncludes(haystack, needle)
 }
 
+// ArrayIncludesInt32 returns true if the slice contains the value.
+// Deprecated: use SliceIncludes instead.
 func ArrayIncludesInt32(haystack []int32, needle int32) bool {
-	for _, v := range haystack {
-		if v == needle {
-			return true
-		}
-	}
-	return false
+	return SliceIncludes(haystack, needle)
 }
 
+// ArrayIncludesStr returns true if the slice contains the value.
+// Deprecated: use SliceIncludes instead.
 func ArrayIncludesStr(haystack []string, needle string) bool {
-	for _, v := range haystack {
-		if v == needle {
-			return true
-		}
-	}
-	return false
+	return SliceIncludes(haystack, needle)
 }
 
+// ArrayIncludesUUID returns true if the slice contains the value.
+// Deprecated: use SliceIncludes instead.
 func ArrayIncludesUUID(haystack []uuid.UUID, needle uuid.UUID) bool {
-	for _, v := range haystack {
-		if v == needle {
-			return true
-		}
-	}
-	return false
+	return SliceIncludes(haystack, needle)
 }
 
 func IntArray2StrArray(in []int) []string {
@@ -219,14 +144,19 @@ func JoinIntArray(in []int, sep string) string {
 	return strings.Join(IntArray2StrArray(in), sep)
 }
 
+// UuidRef returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func UuidRef(id uuid.UUID) *uuid.UUID {
-	return &id
+	return ToPtr(id)
 }
 
+// StrRef returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func StrRef(v string) *string {
-	return &v
+	return ToPtr(v)
 }
 
+// StrFromRef returns the value of the pointer, or "" if nil.
 func StrFromRef(v *string) string {
 	if v == nil {
 		return ""
@@ -234,6 +164,7 @@ func StrFromRef(v *string) string {
 	return *v
 }
 
+// StrNilIfEmpty returns nil if the string is empty.
 func StrNilIfEmpty(v string) *string {
 	if v == "" {
 		return nil
@@ -241,14 +172,19 @@ func StrNilIfEmpty(v string) *string {
 	return &v
 }
 
+// BoolRef returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func BoolRef(v bool) *bool {
-	return &v
+	return ToPtr(v)
 }
 
+// IntRef returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func IntRef(v int) *int {
-	return &v
+	return ToPtr(v)
 }
 
+// IntFromRef returns the value of the pointer, or 0 if nil.
 func IntFromRef(v *int) int {
 	if v == nil {
 		return 0
@@ -256,10 +192,13 @@ func IntFromRef(v *int) int {
 	return *v
 }
 
+// Int32Ref returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func Int32Ref(v int32) *int32 {
-	return &v
+	return ToPtr(v)
 }
 
+// Int32FromRef returns the value of the pointer, or 0 if nil.
 func Int32FromRef(v *int32) int32 {
 	if v == nil {
 		return 0
@@ -267,10 +206,13 @@ func Int32FromRef(v *int32) int32 {
 	return *v
 }
 
+// Int64Ref returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func Int64Ref(v int64) *int64 {
-	return &v
+	return ToPtr(v)
 }
 
+// Int64FromRef returns the value of the pointer, or 0 if nil.
 func Int64FromRef(v *int64) int64 {
 	if v == nil {
 		return 0
@@ -278,10 +220,13 @@ func Int64FromRef(v *int64) int64 {
 	return *v
 }
 
+// TimeRef returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func TimeRef(v time.Time) *time.Time {
-	return &v
+	return ToPtr(v)
 }
 
+// TimeFromRef returns the value of the pointer, or the zero time if nil.
 func TimeFromRef(v *time.Time) time.Time {
 	if v == nil {
 		return time.Time{}
@@ -289,10 +234,13 @@ func TimeFromRef(v *time.Time) time.Time {
 	return *v
 }
 
+// DecimalRef returns a fresh pointer for the value.
+// Deprecated: use ToPtr instead.
 func DecimalRef(v decimal.Decimal) *decimal.Decimal {
-	return &v
+	return ToPtr(v)
 }
 
+// DecimalFromRef returns the value of the pointer, or the zero decimal if nil.
 func DecimalFromRef(v *decimal.Decimal) decimal.Decimal {
 	if v == nil {
 		return decimal.Decimal{}
@@ -357,7 +305,7 @@ func UuidRefFromSql(v uuid.NullUUID) *uuid.UUID {
 	if !v.Valid {
 		return nil
 	}
-	return UuidRef(v.UUID)
+	return ToPtr(v.UUID)
 }
 
 // SqlNullDecimalRef will return a sql 'null' value if the pointer is nil.
@@ -373,7 +321,7 @@ func StrRefFromSql(v sql.NullString) *string {
 	if !v.Valid {
 		return nil
 	}
-	return StrRef(v.String)
+	return ToPtr(v.String)
 }
 
 // IntRefFromSql will return nil for a 'null' SQL value.
@@ -381,7 +329,7 @@ func IntRefFromSql(v sql.NullInt32) *int {
 	if !v.Valid {
 		return nil
 	}
-	return IntRef(int(v.Int32))
+	return ToPtr(int(v.Int32))
 }
 
 // DecimalRefFromSql will return nil for a 'null' SQL value.
@@ -389,7 +337,7 @@ func DecimalRefFromSql(v decimal.NullDecimal) *decimal.Decimal {
 	if !v.Valid {
 		return nil
 	}
-	return DecimalRef(v.Decimal)
+	return ToPtr(v.Decimal)
 }
 
 // TimeRefFromSql will return nil for a 'null' SQL value.
@@ -397,7 +345,7 @@ func TimeRefFromSql(v sql.NullTime) *time.Time {
 	if !v.Valid {
 		return nil
 	}
-	return TimeRef(v.Time)
+	return ToPtr(v.Time)
 }
 
 func SqlTinyIntFromBool(v bool) int8 {
@@ -422,7 +370,7 @@ func GqlTimeRefSql(v sql.NullTime) *string {
 	if !v.Valid {
 		return nil
 	}
-	return StrRef(GqlTime(v.Time))
+	return ToPtr(GqlTime(v.Time))
 }
 
 func TimeFromGqlTime(v string) (time.Time, error) {
@@ -437,7 +385,7 @@ func TimeRefFromGqlTimeRef(v *string) *time.Time {
 	if err != nil {
 		return nil
 	}
-	return TimeRef(t)
+	return ToPtr(t)
 }
 
 func SqlTimeToStrRef(v sql.NullTime) *string {
@@ -450,7 +398,7 @@ func SqlTimeToStrRef(v sql.NullTime) *string {
 func StrSliceToStrRefSlice(v []string) []*string {
 	res := make([]*string, len(v))
 	for i, s := range v {
-		res[i] = StrRef(s)
+		res[i] = ToPtr(s)
 	}
 	return res
 }
@@ -519,4 +467,108 @@ func TruncateStrBytes(str string, maxBytes int) string {
 		}
 	}
 	return string([]byte(str)[:end])
+}
+
+// ScreamingSnakeCaseToHuman converts HUMAN_READABLE to 'human readable'.
+func ScreamingSnakeCaseToHuman(s string) string {
+	return strings.Join(MapSlice(strings.Split(s, "_"), func(v string) string {
+		if len(v) == 0 {
+			return ""
+		}
+		if len(v) == 1 {
+			return strings.ToUpper(v)
+		}
+		return strings.ToUpper(v[0:1]) + strings.ToLower(v[1:])
+	}), " ")
+}
+
+// ToPtr returns a fresh pointer for the value.
+func ToPtr[T any](v T) *T {
+	return &v
+}
+
+// DerefPtrSlice converts a slice of pointers to a slice of values.
+func DerefPtrSlice[T any](s []*T) []T {
+	res := make([]T, len(s))
+	for i, v := range s {
+		res[i] = *v
+	}
+	return res
+}
+
+// SliceToPtrSlice converts a slice of values to a slice of pointers.
+func SliceToPtrSlice[T any](s []T) []*T {
+	if s == nil {
+		return nil
+	}
+	res := make([]*T, len(s))
+	for i, v := range s {
+		res[i] = ToPtr(v)
+	}
+	return res
+}
+
+// DerefPtrSliceSlice converts a slice of slices of pointers to a slice of slices of values.
+func DerefPtrSliceSlice[T any](s [][]*T) [][]T {
+	res := make([][]T, len(s))
+	for i, v := range s {
+		res[i] = DerefPtrSlice(v)
+	}
+	return res
+}
+
+// MapSlice returns a slice of all values from s mapped by f().
+func MapSlice[IN any, OUT any](s []IN, f func(IN) OUT) []OUT {
+	res := make([]OUT, len(s))
+	for i, v := range s {
+		res[i] = f(v)
+	}
+	return res
+}
+
+// SliceIncludes returns true if the slice contains the value.
+func SliceIncludes[T comparable](s []T, v T) bool {
+	for _, vv := range s {
+		if vv == v {
+			return true
+		}
+	}
+	return false
+}
+
+// FilterSlice returns a slice of all values from s that pass the filter function.
+func FilterSlice[T any](s []T, f func(T) bool) []T {
+	res := make([]T, 0, len(s))
+	for _, v := range s {
+		if f(v) {
+			res = append(res, v)
+		}
+	}
+	return res
+}
+
+// DiffSlice returns a slice of all values from a that are not in b.
+func DiffSlice[T comparable](a []T, b []T) []T {
+	diff := make([]T, 0)
+	for _, aItem := range a {
+		found := false
+		for _, bItem := range b {
+			if bItem == aItem {
+				found = true
+				break
+			}
+		}
+		if !found {
+			diff = append(diff, aItem)
+		}
+	}
+	return diff
+}
+
+// IfThenElse is a ternary helper function.
+func IfThenElse[T any](cond bool, t T, f T) T {
+	if cond {
+		return t
+	}
+	return f
 }

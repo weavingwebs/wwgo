@@ -1,8 +1,10 @@
 package wwgo
 
 import (
+	"context"
 	"fmt"
 	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 	"runtime"
 )
 
@@ -69,4 +71,36 @@ func NewClientError(code string, message string, err error) *ClientError {
 		originalError: err,
 		stack:         callers(),
 	}
+}
+
+type ErrAndPanicGroup struct {
+	gos *errgroup.Group
+}
+
+func NewErrAndPanicGroup() *ErrAndPanicGroup {
+	return &ErrAndPanicGroup{
+		gos: &errgroup.Group{},
+	}
+}
+
+func NewErrAndPanicGroupWithContext(ctx context.Context) (*ErrAndPanicGroup, context.Context) {
+	gos, ctx := errgroup.WithContext(ctx)
+	return &ErrAndPanicGroup{
+		gos: gos,
+	}, ctx
+}
+
+func (g *ErrAndPanicGroup) Go(fn func() error) {
+	g.gos.Go(func() (res error) {
+		defer func() {
+			if r := recover(); r != nil {
+				res = errors.Errorf("caught panic: %v", r)
+			}
+		}()
+		return fn()
+	})
+}
+
+func (g *ErrAndPanicGroup) Wait() error {
+	return g.gos.Wait()
 }

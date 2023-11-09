@@ -68,7 +68,7 @@ func (user EntraClaims) HasRole(role string) bool {
 }
 
 func hasRole(haystack []string, needle string) bool {
-	return wwgo.ArrayIncludesStr(wwgo.ArrayMapStr(haystack, strings.ToUpper), strings.ToUpper(needle))
+	return wwgo.SliceIncludes(wwgo.MapSlice(haystack, strings.ToUpper), strings.ToUpper(needle))
 }
 
 // OidcConfig i.e. https://login.microsoftonline.com/common/v2.0/.well-known/openid-configuration

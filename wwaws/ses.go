@@ -128,7 +128,7 @@ func (s *SesMailer) CheckSendToAddress(email string) bool {
 		s.log.Err(errors.Errorf("invalid email %s", email)).Send()
 		return false
 	}
-	return wwgo.ArrayIncludesStr(s.SafeEmailDomains, emailParts[1])
+	return wwgo.SliceIncludes(s.SafeEmailDomains, emailParts[1])
 }
 
 func (s *SesMailer) FilterUnsafeEmailsAndWarn(emails []string) []string {
@@ -136,8 +136,8 @@ func (s *SesMailer) FilterUnsafeEmailsAndWarn(emails []string) []string {
 		return emails
 	}
 	originalEmails := emails
-	emails = wwgo.ArrayFilterFnStr(emails, s.CheckSendToAddress)
-	unsafeEmails := wwgo.ArrayDiffStr(originalEmails, emails)
+	emails = wwgo.FilterSlice(emails, s.CheckSendToAddress)
+	unsafeEmails := wwgo.DiffSlice(originalEmails, emails)
 	if len(unsafeEmails) != 0 {
 		s.log.Warn().Msgf("Refusing to send email to %s", strings.Join(unsafeEmails, ", "))
 	}
