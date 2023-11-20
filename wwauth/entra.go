@@ -26,12 +26,17 @@ type EntraPublicSettings struct {
 type NewEntraAuthInput struct {
 	Log zerolog.Logger
 	EntraPublicSettings
+	// Usually an API scope i.e. "api://<client-id>/my-api"
+	Audience string
 	// MSAL.js seems to use v1.0, v2.0 is supposed to be more standards compliant
 	// [citation needed].
 	Version string
 }
 
 func NewEntraAuth(ctx context.Context, input NewEntraAuthInput) (*EntraAuth, error) {
+	if input.Audience == "" {
+		return nil, errors.Errorf("audience is required")
+	}
 	oidcUrl := "https://login.microsoftonline.com/" + input.TenantId + "/"
 	if input.Version != "" && input.Version != "v1.0" {
 		oidcUrl += input.Version + "/"
@@ -52,8 +57,8 @@ func NewEntraAuth(ctx context.Context, input NewEntraAuthInput) (*EntraAuth, err
 
 	jwtAuth := NewJwtAuth(input.Log, JwtAuthOpt{
 		Jwks:     jwks,
-		Issuer:   config.Issuer,
-		Audience: input.ClientId,
+		Issuer:   "https://sts.windows.net/" + input.TenantId + "/",
+		Audience: input.Audience,
 		NewClaims: func() jwt.Claims {
 			return &EntraClaims{}
 		},
