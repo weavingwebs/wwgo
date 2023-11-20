@@ -26,14 +26,23 @@ type EntraPublicSettings struct {
 type NewEntraAuthInput struct {
 	Log zerolog.Logger
 	EntraPublicSettings
+	// MSAL.js seems to use v1.0, v2.0 is supposed to be more standards compliant
+	// [citation needed].
+	Version string
 }
 
 func NewEntraAuth(ctx context.Context, input NewEntraAuthInput) (*EntraAuth, error) {
-	config, err := getOidcConfig(ctx, "https://login.microsoftonline.com/"+input.TenantId+"/v2.0/.well-known/openid-configuration")
+	oidcUrl := "https://login.microsoftonline.com/" + input.TenantId + "/"
+	if input.Version != "" && input.Version != "v1.0" {
+		oidcUrl += input.Version + "/"
+	}
+	oidcUrl += ".well-known/openid-configuration"
+
+	config, err := getOidcConfig(ctx, oidcUrl)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error getting OIDC config")
 	}
-	input.Log.Info().Msgf("Downloaded OIDC config from %s", "https://login.microsoftonline.com/"+input.TenantId+"/v2.0/.well-known/openid-configuration")
+	input.Log.Info().Msgf("Downloaded OIDC config from %s", oidcUrl)
 
 	jwks, err := jwk.Fetch(ctx, config.JwksUri)
 	if err != nil {
