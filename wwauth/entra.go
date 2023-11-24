@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwk"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -73,12 +74,17 @@ func NewEntraAuth(ctx context.Context, input NewEntraAuthInput) (*EntraAuth, err
 type EntraClaims struct {
 	Email string   `json:"email"`
 	Name  string   `json:"name"`
+	Oid   string   `json:"oid"`
 	Roles []string `json:"roles"`
 	jwt.RegisteredClaims
 }
 
 func (user EntraClaims) HasRole(role string) bool {
 	return hasRole(user.Roles, role)
+}
+
+func (user EntraClaims) UserId() uuid.UUID {
+	return uuid.MustParse(user.Oid)
 }
 
 func hasRole(haystack []string, needle string) bool {
