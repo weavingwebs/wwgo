@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/shopspring/decimal"
+	"github.com/weavingwebs/wwgo"
 	"io"
 )
 
@@ -27,7 +28,11 @@ func UnmarshalDecimalScalar(v interface{}) (*decimal.Decimal, error) {
 	val, err := func() (decimal.Decimal, error) {
 		switch v := v.(type) {
 		case string:
-			return decimal.NewFromString(v)
+			res, err := decimal.NewFromString(v)
+			if err != nil {
+				return decimal.Zero, wwgo.NewClientError("GQL_DECIMAL_PARSE_EXCEPTION", err.Error(), err)
+			}
+			return res, nil
 		case int:
 			return decimal.NewFromInt(int64(v)), nil
 		case int64:

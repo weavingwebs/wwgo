@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
+	"github.com/weavingwebs/wwgo"
 	"io"
 )
 
@@ -27,9 +28,17 @@ func UnmarshalUUIDScalar(v interface{}) (*uuid.UUID, error) {
 	val, err := func() (uuid.UUID, error) {
 		switch v := v.(type) {
 		case string:
-			return uuid.Parse(v)
+			res, err := uuid.Parse(v)
+			if err != nil {
+				return uuid.Nil, wwgo.NewClientError("GQL_UUID_PARSE_EXCEPTION", err.Error(), err)
+			}
+			return res, nil
 		case []byte:
-			return uuid.ParseBytes(v)
+			res, err := uuid.ParseBytes(v)
+			if err != nil {
+				return uuid.Nil, wwgo.NewClientError("GQL_UUID_PARSE_EXCEPTION", err.Error(), err)
+			}
+			return res, nil
 		default:
 			return uuid.Nil, fmt.Errorf("%T is not a string", v)
 		}
