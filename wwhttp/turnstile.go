@@ -1,4 +1,4 @@
-package wwauth
+package wwhttp
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/weavingwebs/wwgo"
-	"github.com/weavingwebs/wwgo/wwhttp"
 	"io"
 	"net/http"
 	"net/url"
@@ -62,7 +61,7 @@ func (t *Turnstile) VerifyToken(ctx context.Context, token string, expectedActio
 	postData := url.Values{
 		"secret":   {t.secretKey},
 		"response": {token},
-		"remoteip": {wwhttp.IpForContext(ctx).String()},
+		"remoteip": {IpForContext(ctx).String()},
 	}
 
 	// POST.
