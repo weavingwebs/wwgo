@@ -9,11 +9,13 @@ import (
 	"time"
 )
 
+type CronFn func(ctx context.Context, log zerolog.Logger) error
+
 type CronTab struct {
 	log      zerolog.Logger
 	slack    *SlackWebhookClient
 	siteName string
-	crons    map[string]func(ctx context.Context, log zerolog.Logger) error
+	crons    map[string]CronFn
 	timeZone *time.Location
 }
 
@@ -24,6 +26,8 @@ func NewCronTab(
 	// i.e. "Europe/London", "UTC" or "Local" (not recommended).
 	// See https://golang.org/pkg/time/#LoadLocation for more info.
 	timeZoneName string,
+	// i.e. "0 1 * * *" for 1am every day.
+	crons map[string]CronFn,
 ) (*CronTab, error) {
 	var timeZone *time.Location
 	var err error
@@ -35,7 +39,7 @@ func NewCronTab(
 		log:      log,
 		slack:    slack,
 		siteName: siteName,
-		crons:    map[string]func(ctx context.Context, log zerolog.Logger) error{},
+		crons:    crons,
 		timeZone: timeZone,
 	}, nil
 }
