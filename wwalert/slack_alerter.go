@@ -31,6 +31,12 @@ func (sa SlackAlerter) SendAlert(ctx context.Context, msg string) error {
 	// Send alerts.
 	sent := 0
 	for i, c := range sa.Configs {
+		// Default username.
+		username := strings.TrimSpace(c.Username)
+		if username == "" {
+			username = sa.DefaultUsername
+		}
+
 		// Resolve webhook url.
 		webhook := c.Webhook
 		if webhook == "" {
@@ -45,10 +51,10 @@ func (sa SlackAlerter) SendAlert(ctx context.Context, msg string) error {
 		}
 
 		// Send.
-		slackClient := wwgo.NewSlackClient(sa.Log, webhook, sa.DefaultUsername)
+		slackClient := wwgo.NewSlackClient(sa.Log, webhook, c.Channel)
 		err := slackClient.TrySend(ctx, wwgo.SlackMessagePayload{
 			Channel:   wwgo.StrNilIfEmpty(strings.TrimSpace(c.Channel)),
-			Username:  wwgo.StrNilIfEmpty(c.Username),
+			Username:  wwgo.StrNilIfEmpty(username),
 			Text:      msg,
 			IconEmoji: wwgo.StrNilIfEmpty(strings.TrimSpace(c.IconEmoji)),
 		})
