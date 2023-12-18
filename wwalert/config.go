@@ -50,9 +50,9 @@ func NewConfigAlerter(log zerolog.Logger, config *AlertsConfig, appName string) 
 }
 
 func NewConfigAlerterFromEnv(log zerolog.Logger, appName string) (*ConfigAlerter, error) {
-	filePath := os.Getenv("WWALERTS_FILE")
+	filePath := os.Getenv("WWALERTS_CONFIG")
 	if filePath == "" {
-		return nil, fmt.Errorf("WWALERTS_FILE is not set")
+		return nil, fmt.Errorf("WWALERTS_CONFIG is not set")
 	}
 	config, err := ReadConfig(filePath)
 	if err != nil {
