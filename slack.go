@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"strconv"
@@ -14,9 +14,17 @@ import (
 )
 
 type SlackWebhookClient struct {
-	webhookUrl string
-	channel    string
-	log        zerolog.Logger
+	webhookUrl     string
+	defaultChannel string
+	log            zerolog.Logger
+}
+
+func NewSlackClient(log zerolog.Logger, webhookUrl string, defaultChannel string) *SlackWebhookClient {
+	return &SlackWebhookClient{
+		webhookUrl:     webhookUrl,
+		defaultChannel: defaultChannel,
+		log:            log,
+	}
 }
 
 func NewSlackWebhookClientFromEnv(log zerolog.Logger) *SlackWebhookClient {
@@ -24,15 +32,22 @@ func NewSlackWebhookClientFromEnv(log zerolog.Logger) *SlackWebhookClient {
 	if webhookUrl == "" {
 		panic("SLACK_WEBHOOK_URL is not set")
 	}
-	return &SlackWebhookClient{webhookUrl: webhookUrl, channel: os.Getenv("SLACK_WEBHOOK_CHANNEL"), log: log}
+	return &SlackWebhookClient{webhookUrl: webhookUrl, defaultChannel: os.Getenv("SLACK_WEBHOOK_CHANNEL"), log: log}
+}
+
+func (s *SlackWebhookClient) TrySend(ctx context.Context, message SlackMessagePayload) error {
+	if message.Channel == nil && s.defaultChannel != "" {
+		message.Channel = ToPtr(s.defaultChannel)
+	}
+	if err := SendSlackWebhook(ctx, s.webhookUrl, message); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *SlackWebhookClient) Send(ctx context.Context, message SlackMessagePayload) {
-	if message.Channel == nil && s.channel != "" {
-		message.Channel = StrRef(s.channel)
-	}
-	if err := SendSlackWebhook(ctx, s.webhookUrl, message); err != nil {
-		s.log.Err(errors.Wrapf(err, "Failed to send slack")).Send()
+	if err := s.TrySend(ctx, message); err != nil {
+		s.log.Err(err).Msgf("Failed to send slack")
 	}
 }
 
@@ -69,7 +84,7 @@ func SendSlackWebhook(ctx context.Context, webhookUrl string, message SlackMessa
 		}
 
 		if resp.StatusCode != 200 {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			return errors.Errorf("slack returned %d: %s", resp.StatusCode, body)
 		}
 

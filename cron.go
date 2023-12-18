@@ -3,7 +3,6 @@ package wwgo
 import (
 	"context"
 	"fmt"
-	"github.com/pkg/errors"
 	"github.com/robfig/cron/v3"
 	"github.com/rs/zerolog"
 	"time"
@@ -13,7 +12,7 @@ type CronFn func(ctx context.Context, log zerolog.Logger) error
 
 type CronTab struct {
 	log      zerolog.Logger
-	slack    *SlackWebhookClient
+	alerter  CategoryAlerter
 	siteName string
 	crons    map[string]CronFn
 	timeZone *time.Location
@@ -21,23 +20,16 @@ type CronTab struct {
 
 func NewCronTab(
 	log zerolog.Logger,
-	slack *SlackWebhookClient,
+	alerter CategoryAlerter,
 	siteName string,
-	// i.e. "Europe/London", "UTC" or "Local" (not recommended).
-	// See https://golang.org/pkg/time/#LoadLocation for more info.
-	timeZoneName string,
+	timeZone *time.Location,
 	// i.e. "0 1 * * *" for 1am every day.
+	// See https://godoc.org/github.com/robfig/cron#hdr-CRON_Expression_Format for more info.
 	crons map[string]CronFn,
 ) (*CronTab, error) {
-	var timeZone *time.Location
-	var err error
-	if timeZone, err = time.LoadLocation(timeZoneName); err != nil {
-		return nil, errors.Wrapf(err, "failed to load timezone '%s'", timeZoneName)
-	}
-
 	return &CronTab{
 		log:      log,
-		slack:    slack,
+		alerter:  alerter,
 		siteName: siteName,
 		crons:    crons,
 		timeZone: timeZone,
@@ -58,12 +50,9 @@ func (c *CronTab) Start(ctx context.Context) {
 		if _, err := crons.AddFunc(spec, func() {
 			if err := fn(ctx, log); err != nil {
 				log.Err(err).Send()
-				c.slack.Send(ctx, SlackMessagePayload{
-					Channel:   nil,
-					Username:  ToPtr(c.siteName),
-					Text:      fmt.Sprintf("Cron job failed with error: %s", err),
-					IconEmoji: ToPtr(":face_with_symbols_on_mouth:"),
-				})
+				if innerErr := c.alerter.SendAlert(ctx, "api_error", fmt.Sprintf("Cron job failed with error: %s", err)); innerErr != nil {
+					log.Err(innerErr).Msg("Failed to send alert")
+				}
 			}
 		}); err != nil {
 			log.Fatal().Err(err).Msgf("Failed to add cron %s", spec)
