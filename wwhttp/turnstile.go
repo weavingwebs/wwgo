@@ -100,17 +100,14 @@ func (t *Turnstile) VerifyToken(ctx context.Context, token string, expectedActio
 		return false, nil
 	}
 
-	// Check time.
-	if resp.ChallengeTs == nil || time.Since(*resp.ChallengeTs) > 1*time.Minute {
-		t.log.Warn().Msg("turnstile token is valid but is too old")
-		return false, nil
-	}
-
 	// Check hostname.
 	if resp.Hostname == nil || !wwgo.SliceIncludes(t.trustedDomains, *resp.Hostname) {
 		t.log.Warn().Msgf("turnstile token is valid but has wrong hostname (expected %s, got %s)", t.trustedDomains, *resp.Hostname)
 		return false, nil
 	}
+
+	// NOTE: Turnstile should expire tokens after 300 seconds so we don't need to
+	// check the timestamp.
 
 	// Success.
 	return true, nil
