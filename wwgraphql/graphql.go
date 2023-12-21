@@ -480,3 +480,48 @@ func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Res
 
 	return next(ctx)
 }
+
+type ValidateArrayRules struct {
+	MinLength *int `json:"minLength"`
+	MaxLength *int `json:"maxLength"`
+}
+
+func ValidateArrayDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateArrayRules) (res interface{}, err error) {
+	values, ok := obj.(map[string]interface{})
+	if !ok {
+		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+	}
+
+	// Get value.
+	fieldName := *graphql.GetPathContext(ctx).Field
+	rawValue, ok := values[fieldName]
+	if !ok {
+		// Do nothing if no value.
+		return next(ctx)
+	}
+	if rawValue == nil {
+		return next(ctx)
+	}
+	value, ok := rawValue.([]interface{})
+	if !ok {
+		return nil, errors.Wrapf(err, "value is an invalid type for ValidateArrayDirective: %T", rawValue)
+	}
+
+	// Validate.
+	if rules.MinLength != nil && len(value) < *rules.MinLength {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_ARRAY_MINLENGTH_EXCEPTION",
+			fmt.Sprintf("Must have at least %d items", *rules.MinLength),
+			nil,
+		)
+	}
+	if rules.MaxLength != nil && len(value) > *rules.MaxLength {
+		return nil, wwgo.NewClientError(
+			"VALIDATE_ARRAY_MAXLENGTH_EXCEPTION",
+			fmt.Sprintf("Must have at most %d items", *rules.MaxLength),
+			nil,
+		)
+	}
+
+	return next(ctx)
+}
