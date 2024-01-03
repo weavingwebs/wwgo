@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"database/sql"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/shopspring/decimal"
@@ -571,4 +572,15 @@ func IfThenElse[T any](cond bool, t T, f T) T {
 		return t
 	}
 	return f
+}
+
+func JoinStringers[T fmt.Stringer](items []T, sep string) string {
+	var res []string
+	for _, item := range items {
+		if item == nil {
+			continue
+		}
+		res = append(res, item.String())
+	}
+	return strings.Join(res, sep)
 }
