@@ -112,6 +112,17 @@ func TokenFromHeader(r *http.Request) string {
 	return ""
 }
 
-func ContextWithJwt(ctx context.Context, token *jwt.Token) context.Context {
-	return context.WithValue(ctx, JwtCtxKey, token)
+func ContextWithJwt(ctx context.Context, jwt interface{}) context.Context {
+	return context.WithValue(ctx, JwtCtxKey, jwt)
+}
+
+func JwtFromContext(ctx context.Context) string {
+	return ctx.Value(JwtCtxKey).(string)
+}
+
+func JwtMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := ContextWithJwt(r.Context(), TokenFromHeader(r))
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

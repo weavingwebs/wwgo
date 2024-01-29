@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/weavingwebs/wwgo/wwauth"
 	"net"
 	"net/http"
 	"strings"
@@ -95,23 +94,6 @@ func UserAgentFromContext(ctx context.Context) string {
 func UserAgentMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := ContextWithUserAgent(r.Context(), r.UserAgent())
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
-}
-
-var jwtCtxKey = &contextKey{"jwt"}
-
-func ContextWithJwt(ctx context.Context, jwt interface{}) context.Context {
-	return context.WithValue(ctx, jwtCtxKey, jwt)
-}
-
-func JwtFromContext(ctx context.Context) string {
-	return ctx.Value(jwtCtxKey).(string)
-}
-
-func JwtMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := ContextWithJwt(r.Context(), wwauth.TokenFromHeader(r))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
