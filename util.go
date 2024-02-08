@@ -574,6 +574,12 @@ func IfThenElse[T any](cond bool, t T, f T) T {
 	return f
 }
 
+func ToStringSlice[T fmt.Stringer](input []T) []string {
+	return MapSlice(input, func(v T) string {
+		return v.String()
+	})
+}
+
 func JoinStringers[T fmt.Stringer](items []T, sep string) string {
-	return strings.Join(MapSlice(items, func(v T) string { return v.String() }), sep)
+	return strings.Join(ToStringSlice(items), sep)
 }
