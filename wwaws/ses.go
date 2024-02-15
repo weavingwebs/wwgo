@@ -60,6 +60,10 @@ func NewSesMailerFromEnv(
 	return NewSesMailer(log, awsConfig, fromAddress, safeEmailDomains)
 }
 
+func (s *SesMailer) FromAddress() string {
+	return s.fromAddress
+}
+
 func (s *SesMailer) Send(ctx context.Context, email Email) error {
 	to := s.FilterUnsafeEmailsAndWarn(email.To)
 	if len(to) == 0 {
