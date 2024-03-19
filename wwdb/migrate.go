@@ -54,12 +54,22 @@ func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
 			},
 			{
 				Name: "down",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "yes",
+						Aliases: []string{"y"},
+					},
+					&cli.IntFlag{
+						Name:  "steps",
+						Value: 1,
+					},
+				},
 				Action: func(ctx *cli.Context) error {
-					if !wwgo.CliConfirm("Are you sure you want to apply 1 down migration?") {
+					if !ctx.Bool("yes") && !wwgo.CliConfirm("Are you sure you want to apply 1 down migration?") {
 						fmt.Println("cancelled")
 						return nil
 					}
-					if err := migrator().Steps(-1); err != nil {
+					if err := migrator().Steps(-ctx.Int("steps")); err != nil {
 						return err
 					}
 					fmt.Println("👍️")
@@ -84,8 +94,14 @@ func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
 			},
 			{
 				Name: "drop",
+				Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "yes",
+						Aliases: []string{"y"},
+					},
+				},
 				Action: func(ctx *cli.Context) error {
-					if !(wwgo.CliConfirm("Are you sure you want to destroy the whole database?") && wwgo.CliConfirm("Seriously, you are really sure you want to destroy the whole database?")) {
+					if !ctx.Bool("yes") && !(wwgo.CliConfirm("Are you sure you want to destroy the whole database?") && wwgo.CliConfirm("Seriously, you are really sure you want to destroy the whole database?")) {
 						fmt.Println("cancelled")
 						return nil
 					}
