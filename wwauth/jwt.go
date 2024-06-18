@@ -55,6 +55,7 @@ func NewJwtAuth(ctx context.Context, log zerolog.Logger, opt JwtAuthOpt) (*JwtAu
 
 	return &JwtAuth{
 		log:        log,
+		Jwks:       jwks,
 		JwtAuthOpt: opt,
 	}, nil
 }
