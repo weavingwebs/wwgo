@@ -3,7 +3,7 @@ package wwauth
 import (
 	"context"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/lestrrat-go/jwx/jwk"
+	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -19,7 +19,7 @@ type contextKey struct {
 }
 
 type JwtAuthOpt struct {
-	Jwks     jwk.Set
+	Jwks     *jwk.Cache
 	Issuer   string
 	Audience string
 	// DANGER: It is very important for newClaims to return a fresh claims pointer,
@@ -53,7 +53,7 @@ func (auth *JwtAuth) JwtMiddleware(next http.Handler) http.Handler {
 		}
 
 		// Parse the token.
-		token, err := auth.ParseJwt(tokenStr)
+		token, err := auth.ParseJwt(r.Context(), tokenStr)
 		if err != nil {
 			log.Error().Err(err).Stack().Msg("JWT error")
 			if errors.Is(err, jwt.ErrTokenExpired) {
@@ -68,7 +68,7 @@ func (auth *JwtAuth) JwtMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (auth *JwtAuth) ParseJwt(tokenStr string) (*jwt.Token, error) {
+func (auth *JwtAuth) ParseJwt(ctx context.Context, tokenStr string) (*jwt.Token, error) {
 	// Parse the token.
 	claims := auth.NewClaims()
 	parser := jwt.NewParser(
@@ -81,11 +81,15 @@ func (auth *JwtAuth) ParseJwt(tokenStr string) (*jwt.Token, error) {
 		if !ok {
 			return nil, errors.New("kid header not found in jwt")
 		}
-		key, ok := auth.Jwks.LookupKeyID(kid)
+		jwks, err := auth.Jwks.Get(ctx, kid)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error getting jwk %s", kid)
+		}
+		key, ok := jwks.LookupKeyID(kid)
 		if !ok {
 			return nil, errors.Errorf("key %v not found in jwks", kid)
 		}
-		if key.Algorithm() != "" && token.Method.Alg() != key.Algorithm() {
+		if key.Algorithm().String() != "" && token.Method.Alg() != key.Algorithm().String() {
 			return nil, errors.Errorf("Invalid jwt method: %s (expected %s)", token.Method.Alg(), key.Algorithm())
 		}
 

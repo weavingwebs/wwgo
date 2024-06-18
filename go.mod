@@ -33,7 +33,7 @@ require (
 	github.com/subchen/go-trylock/v2 v2.0.0
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/vektah/gqlparser/v2 v2.5.11
-	golang.org/x/crypto v0.22.0
+	golang.org/x/crypto v0.24.0
 	golang.org/x/sync v0.7.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -52,7 +52,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.4 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
-	github.com/goccy/go-json v0.10.2 // indirect
+	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
@@ -61,7 +61,9 @@ require (
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
+	github.com/lestrrat-go/httprc v1.0.5 // indirect
 	github.com/lestrrat-go/iter v1.0.2 // indirect
+	github.com/lestrrat-go/jwx/v2 v2.1.0 // indirect
 	github.com/lestrrat-go/option v1.0.1 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -69,11 +71,12 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sosodev/duration v1.2.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/net v0.24.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/term v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/term v0.21.0 // indirect
+	golang.org/x/text v0.16.0 // indirect
 )
