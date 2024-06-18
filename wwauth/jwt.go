@@ -19,7 +19,7 @@ type contextKey struct {
 }
 
 type JwtAuthOpt struct {
-	Jwks     *jwk.Cache
+	JwksUri  string
 	Issuer   string
 	Audience string
 	// DANGER: It is very important for newClaims to return a fresh claims pointer,
@@ -28,18 +28,35 @@ type JwtAuthOpt struct {
 }
 
 type JwtAuth struct {
-	log zerolog.Logger
+	log  zerolog.Logger
+	Jwks *jwk.Cache
 	JwtAuthOpt
 }
 
 // NewJwtAuth
 // DANGER: It is very important for newClaims to return a fresh claims pointer,
 // otherwise all requests will share the same JWT claims pointer!
-func NewJwtAuth(log zerolog.Logger, opt JwtAuthOpt) *JwtAuth {
+func NewJwtAuth(ctx context.Context, log zerolog.Logger, opt JwtAuthOpt) (*JwtAuth, error) {
+	jwks := jwk.NewCache(ctx)
+
+	// Tell *jwk.Cache that we only want to refresh this JWKS
+	// when it needs to (based on Cache-Control or Expires header from
+	// the HTTP response). If the calculated minimum refresh interval is less
+	// than 15 minutes, don't go refreshing any earlier than 15 minutes.
+	if err := jwks.Register(opt.JwksUri, jwk.WithMinRefreshInterval(15*time.Minute)); err != nil {
+		return nil, errors.Wrapf(err, "error registering JWKs from %s", opt.JwksUri)
+	}
+
+	// Refresh now to ensure it's working.
+	if _, err := jwks.Refresh(ctx, opt.JwksUri); err != nil {
+		return nil, errors.Wrapf(err, "error downloading JWKs from %s", opt.JwksUri)
+	}
+	log.Info().Msgf("Downloaded JWKs from %s", opt.JwksUri)
+
 	return &JwtAuth{
 		log:        log,
 		JwtAuthOpt: opt,
-	}
+	}, nil
 }
 
 func (auth *JwtAuth) JwtMiddleware(next http.Handler) http.Handler {
@@ -81,7 +98,7 @@ func (auth *JwtAuth) ParseJwt(ctx context.Context, tokenStr string) (*jwt.Token,
 		if !ok {
 			return nil, errors.New("kid header not found in jwt")
 		}
-		jwks, err := auth.Jwks.Get(ctx, kid)
+		jwks, err := auth.Jwks.Get(ctx, auth.JwksUri)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error getting jwk %s", kid)
 		}

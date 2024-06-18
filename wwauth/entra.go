@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/weavingwebs/wwgo"
@@ -50,30 +49,17 @@ func NewEntraAuth(ctx context.Context, input NewEntraAuthInput) (*EntraAuth, err
 	}
 	input.Log.Info().Msgf("Downloaded OIDC config from %s", oidcUrl)
 
-	jwks := jwk.NewCache(ctx)
-
-	// Tell *jwk.Cache that we only want to refresh this JWKS
-	// when it needs to (based on Cache-Control or Expires header from
-	// the HTTP response). If the calculated minimum refresh interval is less
-	// than 15 minutes, don't go refreshing any earlier than 15 minutes.
-	if err := jwks.Register(config.JwksUri, jwk.WithMinRefreshInterval(15*time.Minute)); err != nil {
-		return nil, errors.Wrapf(err, "error registering JWKs from %s", config.JwksUri)
-	}
-
-	// Refresh now to ensure it's working.
-	if _, err := jwks.Refresh(ctx, config.JwksUri); err != nil {
-		return nil, errors.Wrapf(err, "error downloading JWKs from %s", config.JwksUri)
-	}
-	input.Log.Info().Msgf("Downloaded JWKs from %s", config.JwksUri)
-
-	jwtAuth := NewJwtAuth(input.Log, JwtAuthOpt{
-		Jwks:     jwks,
+	jwtAuth, err := NewJwtAuth(ctx, input.Log, JwtAuthOpt{
+		JwksUri:  config.JwksUri,
 		Issuer:   "https://sts.windows.net/" + input.TenantId + "/",
 		Audience: input.Audience,
 		NewClaims: func() jwt.Claims {
 			return &EntraClaims{}
 		},
 	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating jwt auth")
+	}
 
 	return &EntraAuth{
 		JwtAuth:             jwtAuth,
