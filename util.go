@@ -288,6 +288,14 @@ func SqlNullTimeRef(v *time.Time) sql.NullTime {
 	return sql.NullTime{Time: *v, Valid: true}
 }
 
+// SqlNullBoolRef will return a sql 'null' value if the pointer is nil.
+func SqlNullBoolRef(v *bool) sql.NullBool {
+	if v == nil {
+		return sql.NullBool{}
+	}
+	return sql.NullBool{Bool: *v, Valid: true}
+}
+
 // SqlNullUuid will return a sql 'null' value if the uuid is empty.
 func SqlNullUuid(v uuid.UUID) uuid.NullUUID {
 	return uuid.NullUUID{UUID: v, Valid: v != uuid.Nil}
@@ -307,6 +315,11 @@ func UuidRefFromSql(v uuid.NullUUID) *uuid.UUID {
 		return nil
 	}
 	return ToPtr(v.UUID)
+}
+
+// SqlNullDecimal will return a sql 'null' value if the decimal is zero.
+func SqlNullDecimal(v decimal.Decimal) decimal.NullDecimal {
+	return decimal.NullDecimal{Decimal: v, Valid: !v.IsZero()}
 }
 
 // SqlNullDecimalRef will return a sql 'null' value if the pointer is nil.
