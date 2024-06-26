@@ -48,6 +48,15 @@ func (c *CronTab) Start(ctx context.Context) {
 	// Add crons.
 	for spec, fn := range c.crons {
 		if _, err := crons.AddFunc(spec, func() {
+			// Catch panics.
+			defer func() {
+				if r := recover(); r != nil {
+					log.Error().Interface("panic", r).Msg("Panic in cron")
+					if innerErr := c.alerter.SendAlert(ctx, "panic", fmt.Sprintf("Panic in cron: %v", r)); innerErr != nil {
+						log.Err(innerErr).Msg("Failed to send alert")
+					}
+				}
+			}()
 			if err := fn(ctx, log); err != nil {
 				log.Err(err).Send()
 				if innerErr := c.alerter.SendAlert(ctx, "api_error", fmt.Sprintf("Cron job failed with error: %s", err)); innerErr != nil {
