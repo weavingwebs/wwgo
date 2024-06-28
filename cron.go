@@ -52,7 +52,7 @@ func (c *CronTab) Start(ctx context.Context) {
 			defer func() {
 				if r := recover(); r != nil {
 					log.Error().Str("panic", fmt.Sprintf("%+v", r)).Str("cron", spec).Msg("Panic in cron")
-					if innerErr := c.alerter.SendAlert(ctx, "panic", fmt.Sprintf("Panic in cron '%s': %+v", spec, r)); innerErr != nil {
+					if innerErr := c.alerter.SendAlert(ctx, "api_error", fmt.Sprintf("Panic in cron '%s': %+v", spec, r)); innerErr != nil {
 						log.Err(innerErr).Msg("Failed to send alert")
 					}
 				}
