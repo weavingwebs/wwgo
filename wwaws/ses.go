@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-var DefaultSafeEmailDomains = []string{"weavingwebs.co.uk"}
+var DefaultSafeEmailDomains = []string{"weavingwebs.co.uk", "litmusemail.com"}
 
 type SesMailer struct {
 	log              zerolog.Logger
