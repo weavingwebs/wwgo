@@ -1,6 +1,7 @@
 package wwstripe
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/stripe/stripe-go/v78"
@@ -13,7 +14,7 @@ import (
 	"sync"
 )
 
-type StripeEventHandler func(stripeApi *Stripe, event stripe.Event) ([]byte, error)
+type StripeEventHandler func(ctx context.Context, stripeApi *Stripe, event stripe.Event) ([]byte, error)
 
 type Stripe struct {
 	sc              *client.API
@@ -217,7 +218,7 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler, onError fun
 
 		// NOTE: We want to fully process the webhook event before returning a
 		// response so that if we fail, stripe will know.
-		resp, err := onWebhook(sApi, event)
+		resp, err := onWebhook(req.Context(), sApi, event)
 		if err != nil {
 			err = errors.Wrapf(err, "onWebhook failed to process event %s", event.ID)
 			sApi.log.Err(err).RawJSON("webhookEvent", event.Data.Raw).Send()
