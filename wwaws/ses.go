@@ -24,6 +24,8 @@ type SesMailer struct {
 type Email struct {
 	FromLabel string
 	To        []string
+	Cc        []string
+	Bcc       []string
 	Subject   string
 	HtmlBody  string
 }
@@ -70,6 +72,8 @@ func (s *SesMailer) Send(ctx context.Context, email Email) error {
 		s.log.Warn().Msgf("No email was sent")
 		return nil
 	}
+	cc := s.FilterUnsafeEmailsAndWarn(email.Cc)
+	bcc := s.FilterUnsafeEmailsAndWarn(email.Bcc)
 	source := s.fromAddress
 	if email.FromLabel != "" {
 		source = email.FromLabel + " <" + s.fromAddress + ">"
@@ -77,7 +81,9 @@ func (s *SesMailer) Send(ctx context.Context, email Email) error {
 
 	_, err := s.sesClient.SendEmail(ctx, &ses.SendEmailInput{
 		Destination: &types.Destination{
-			ToAddresses: to,
+			BccAddresses: bcc,
+			CcAddresses:  cc,
+			ToAddresses:  to,
 		},
 		Message: &types.Message{
 			Body: &types.Body{
