@@ -105,10 +105,10 @@ type ValidateStringRules struct {
 	RegExp    *string `json:"regExp"`
 }
 
-func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateStringRules) (res interface{}, err error) {
+func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateStringRules) (interface{}, error) {
 	values, ok := obj.(map[string]interface{})
 	if !ok {
-		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+		return nil, errors.Errorf("obj is an unexpected type: %T", obj)
 	}
 
 	// Get value.
@@ -203,10 +203,10 @@ type ValidateDateRelative struct {
 	Days   int `json:"days"`
 }
 
-func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDateRules) (res interface{}, err error) {
+func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDateRules) (interface{}, error) {
 	values, ok := obj.(map[string]interface{})
 	if !ok {
-		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+		return nil, errors.Errorf("obj is an unexpected type: %T", obj)
 	}
 
 	// Get value.
@@ -289,10 +289,10 @@ type ValidateDecimalRules struct {
 	Max *decimal.Decimal `json:"max"`
 }
 
-func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDecimalRules) (res interface{}, err error) {
+func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDecimalRules) (interface{}, error) {
 	values, ok := obj.(map[string]interface{})
 	if !ok {
-		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+		return nil, errors.Errorf("obj is an unexpected type: %T", obj)
 	}
 
 	// Get value.
@@ -303,6 +303,7 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 		return next(ctx)
 	}
 	var value decimal.Decimal
+	var err error
 	switch v := rawValue.(type) {
 	case nil:
 		return next(ctx)
@@ -392,10 +393,10 @@ type ValidateIntRules struct {
 	Max *int `json:"max"`
 }
 
-func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateIntRules) (res interface{}, err error) {
+func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateIntRules) (interface{}, error) {
 	values, ok := obj.(map[string]interface{})
 	if !ok {
-		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+		return nil, errors.Errorf("obj is an unexpected type: %T", obj)
 	}
 
 	// Get value.
@@ -406,6 +407,7 @@ func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Res
 		return next(ctx)
 	}
 	var value int
+	var err error
 	switch v := rawValue.(type) {
 	case nil:
 		return next(ctx)
@@ -486,10 +488,10 @@ type ValidateArrayRules struct {
 	MaxLength *int `json:"maxLength"`
 }
 
-func ValidateArrayDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateArrayRules) (res interface{}, err error) {
+func ValidateArrayDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateArrayRules) (interface{}, error) {
 	values, ok := obj.(map[string]interface{})
 	if !ok {
-		return nil, errors.Wrapf(err, "obj is an unexpected type: %T", obj)
+		return nil, errors.Errorf("obj is an unexpected type: %T", obj)
 	}
 
 	// Get value.
@@ -504,7 +506,7 @@ func ValidateArrayDirective(ctx context.Context, obj interface{}, next graphql.R
 	}
 	value, ok := rawValue.([]interface{})
 	if !ok {
-		return nil, errors.Wrapf(err, "value is an invalid type for ValidateArrayDirective: %T", rawValue)
+		return nil, errors.Errorf("value is an invalid type for ValidateArrayDirective: %T", rawValue)
 	}
 
 	// Validate.
