@@ -99,6 +99,7 @@ func DefaultErrorPresenter(log zerolog.Logger) func(ctx context.Context, e error
 // @todo figure out how to put validation directives into a gqlgen plugin?
 
 type ValidateStringRules struct {
+	Label     *string `json:"label"`
 	MinLength *int    `json:"minLength"`
 	MaxLength *int    `json:"maxLength"`
 	Pattern   *string `json:"pattern"`
@@ -141,14 +142,14 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 	if rules.MinLength != nil && len(str) < *rules.MinLength {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_STRING_MIN_LENGTH_EXCEPTION",
-			fmt.Sprintf("Cannot be less than %d %s", *rules.MinLength, wwgo.Plural(*rules.MinLength, "character", "characters")),
+			prefixWithLabel(fmt.Sprintf("Cannot be less than %d %s", *rules.MinLength, wwgo.Plural(*rules.MinLength, "character", "characters")), rules.Label),
 			nil,
 		)
 	}
 	if rules.MaxLength != nil && len(str) > *rules.MaxLength {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_STRING_MAX_LENGTH_EXCEPTION",
-			fmt.Sprintf("Cannot be more than %d %s", *rules.MaxLength, wwgo.Plural(*rules.MaxLength, "character", "characters")),
+			prefixWithLabel(fmt.Sprintf("Cannot be more than %d %s", *rules.MaxLength, wwgo.Plural(*rules.MaxLength, "character", "characters")), rules.Label),
 			nil,
 		)
 	}
@@ -158,13 +159,13 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 			if !cognitoEmailRegexp.MatchString(str) {
 				return nil, wwgo.NewClientError(
 					"VALIDATE_STRING_PATTERN_EMAIL_CHARS_EXCEPTION",
-					"Email contains invalid characters",
+					prefixWithLabel("Email contains invalid characters", rules.Label),
 					nil,
 				)
 			} else if !emailRegexp.MatchString(str) {
 				return nil, wwgo.NewClientError(
 					"VALIDATE_STRING_PATTERN_EMAIL_FORMAT_EXCEPTION",
-					"Please enter a valid email address",
+					prefixWithLabel("Please enter a valid email address", rules.Label),
 					nil,
 				)
 			}
@@ -180,7 +181,7 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 			if !exp.MatchString(str) {
 				return nil, wwgo.NewClientError(
 					"VALIDATE_STRING_PATTERN_REGEXP_EXCEPTION",
-					"Invalid format",
+					prefixWithLabel("Invalid format", rules.Label),
 					nil,
 				)
 			}
@@ -191,6 +192,7 @@ func ValidateStringDirective(ctx context.Context, obj interface{}, next graphql.
 }
 
 type ValidateDateRules struct {
+	Label          *string               `json:"label"`
 	BeforeDate     *scalars.GqlDate      `json:"beforeDate"`
 	BeforeRelative *ValidateDateRelative `json:"beforeRelative"`
 	AfterDate      *scalars.GqlDate      `json:"afterDate"`
@@ -249,7 +251,7 @@ func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Re
 	if rules.BeforeDate != nil && !date.Before(rules.BeforeDate.Time()) {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_DATE_BEFORE_DATE_EXCEPTION",
-			fmt.Sprintf("Must be before %s", rules.BeforeDate.Time().Format(scalars.GqlDateFormat)),
+			prefixWithLabel(fmt.Sprintf("Must be before %s", rules.BeforeDate.Time().Format(scalars.GqlDateFormat)), rules.Label),
 			nil,
 		)
 	}
@@ -258,7 +260,7 @@ func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Re
 		if !date.Before(d) {
 			return nil, wwgo.NewClientError(
 				"VALIDATE_DATE_BEFORE_RELATIVE_EXCEPTION",
-				fmt.Sprintf("Must be before %s", d.Format(scalars.GqlDateFormat)),
+				prefixWithLabel(fmt.Sprintf("Must be before %s", d.Format(scalars.GqlDateFormat)), rules.Label),
 				nil,
 			)
 		}
@@ -266,7 +268,7 @@ func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Re
 	if rules.AfterDate != nil && !date.After(rules.AfterDate.Time()) {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_DATE_After_DATE_EXCEPTION",
-			fmt.Sprintf("Must be after %s", rules.AfterDate.Time().Format(scalars.GqlDateFormat)),
+			prefixWithLabel(fmt.Sprintf("Must be after %s", rules.AfterDate.Time().Format(scalars.GqlDateFormat)), rules.Label),
 			nil,
 		)
 	}
@@ -275,7 +277,7 @@ func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Re
 		if !date.After(d) {
 			return nil, wwgo.NewClientError(
 				"VALIDATE_DATE_AFTER_RELATIVE_EXCEPTION",
-				fmt.Sprintf("Must be after %s", d.Format(scalars.GqlDateFormat)),
+				prefixWithLabel(fmt.Sprintf("Must be after %s", d.Format(scalars.GqlDateFormat)), rules.Label),
 				nil,
 			)
 		}
@@ -285,8 +287,9 @@ func ValidateDateDirective(ctx context.Context, obj interface{}, next graphql.Re
 }
 
 type ValidateDecimalRules struct {
-	Min *decimal.Decimal `json:"min"`
-	Max *decimal.Decimal `json:"max"`
+	Label *string          `json:"label"`
+	Min   *decimal.Decimal `json:"min"`
+	Max   *decimal.Decimal `json:"max"`
 }
 
 func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateDecimalRules) (interface{}, error) {
@@ -338,7 +341,7 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 	case string:
 		value, err = decimal.NewFromString(v)
 		if err != nil {
-			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", "Invalid decimal", nil)
+			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", prefixWithLabel("Is not a valid decimal", rules.Label), err)
 		}
 	case *string:
 		if v == nil {
@@ -347,13 +350,13 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 		}
 		value, err = decimal.NewFromString(*v)
 		if err != nil {
-			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", "Invalid decimal", nil)
+			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", prefixWithLabel("Is not a valid decimal", rules.Label), err)
 		}
 
 	case json.Number:
 		value, err = decimal.NewFromString(v.String())
 		if err != nil {
-			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", "Invalid decimal", nil)
+			return nil, wwgo.NewClientError("VALIDATE_DECIMAL_INVALID_EXCEPTION", prefixWithLabel("Is not a valid decimal", rules.Label), err)
 		}
 
 	case decimal.Decimal:
@@ -373,14 +376,14 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 	if rules.Min != nil && value.LessThan(*rules.Min) {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_DECIMAL_MIN_EXCEPTION",
-			fmt.Sprintf("Must be at least %s", rules.Min.String()),
+			prefixWithLabel(fmt.Sprintf("Must be at least %s", rules.Min.String()), rules.Label),
 			nil,
 		)
 	}
 	if rules.Max != nil && value.GreaterThan(*rules.Max) {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_DECIMAL_MAX_EXCEPTION",
-			fmt.Sprintf("Must be no more than %s", rules.Max.String()),
+			prefixWithLabel(fmt.Sprintf("Must be no more than %s", rules.Max.String()), rules.Label),
 			nil,
 		)
 	}
@@ -389,8 +392,9 @@ func ValidateDecimalDirective(ctx context.Context, obj interface{}, next graphql
 }
 
 type ValidateIntRules struct {
-	Min *int `json:"min"`
-	Max *int `json:"max"`
+	Label *string `json:"label"`
+	Min   *int    `json:"min"`
+	Max   *int    `json:"max"`
 }
 
 func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Resolver, rules ValidateIntRules) (interface{}, error) {
@@ -442,7 +446,7 @@ func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Res
 	case string:
 		value, err = strconv.Atoi(v)
 		if err != nil {
-			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", "Invalid integer", nil)
+			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", prefixWithLabel("Is not a valid integer", rules.Label), err)
 		}
 	case *string:
 		if v == nil {
@@ -451,13 +455,13 @@ func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Res
 		}
 		value, err = strconv.Atoi(*v)
 		if err != nil {
-			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", "Invalid integer", nil)
+			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", prefixWithLabel("Is not a valid integer", rules.Label), err)
 		}
 
 	case json.Number:
 		value, err = strconv.Atoi(v.String())
 		if err != nil {
-			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", "Invalid integer", nil)
+			return nil, wwgo.NewClientError("VALIDATE_INT_INVALID_EXCEPTION", prefixWithLabel("Is not a valid integer", rules.Label), err)
 		}
 
 	default:
@@ -468,14 +472,14 @@ func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Res
 	if rules.Min != nil && value < *rules.Min {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_INT_MIN_EXCEPTION",
-			fmt.Sprintf("Must be at least %d", *rules.Min),
+			prefixWithLabel(fmt.Sprintf("Must be at least %d", *rules.Min), rules.Label),
 			nil,
 		)
 	}
 	if rules.Max != nil && value > *rules.Max {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_INT_MAX_EXCEPTION",
-			fmt.Sprintf("Must be no more than %d", *rules.Max),
+			prefixWithLabel(fmt.Sprintf("Must be no more than %d", *rules.Max), rules.Label),
 			nil,
 		)
 	}
@@ -484,6 +488,7 @@ func ValidateIntDirective(ctx context.Context, obj interface{}, next graphql.Res
 }
 
 type ValidateArrayRules struct {
+	Label     *string
 	MinLength *int `json:"minLength"`
 	MaxLength *int `json:"maxLength"`
 }
@@ -513,17 +518,24 @@ func ValidateArrayDirective(ctx context.Context, obj interface{}, next graphql.R
 	if rules.MinLength != nil && len(value) < *rules.MinLength {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_ARRAY_MINLENGTH_EXCEPTION",
-			fmt.Sprintf("Must have at least %d items", *rules.MinLength),
+			prefixWithLabel(fmt.Sprintf("Must have at least %d items", *rules.MinLength), rules.Label),
 			nil,
 		)
 	}
 	if rules.MaxLength != nil && len(value) > *rules.MaxLength {
 		return nil, wwgo.NewClientError(
 			"VALIDATE_ARRAY_MAXLENGTH_EXCEPTION",
-			fmt.Sprintf("Must have at most %d items", *rules.MaxLength),
+			prefixWithLabel(fmt.Sprintf("Must have at most %d items", *rules.MaxLength), rules.Label),
 			nil,
 		)
 	}
 
 	return next(ctx)
+}
+
+func prefixWithLabel(str string, label *string) string {
+	if label != nil && !strings.HasPrefix(str, *label) {
+		return fmt.Sprintf("%s %s", *label, strings.ToLower(str[0:1])+str[1:])
+	}
+	return str
 }
