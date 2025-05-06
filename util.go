@@ -38,7 +38,7 @@ func GenerateRandomString(length int, charset []rune) string {
 	return string(res)
 }
 
-// FormatDate supports ordinal days.
+// FormatDate supports ordinal days i.e. 'Monday 2nd January 2006 15:04:05'.
 func FormatDate(t time.Time, format string) string {
 	if strings.Contains(format, "2nd") {
 		suffix := "th"
