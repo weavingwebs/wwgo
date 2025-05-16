@@ -579,6 +579,31 @@ func DiffSlice[T comparable](a []T, b []T) []T {
 	return diff
 }
 
+// SplitMapAndFilterString splits a string, applies mapping function(s) and
+// filters out empty strings.
+// i.e. SplitTrimAndFilterString("test1, test2", ",", strings.TrimSpace, strings.ToUpper)
+func SplitMapAndFilterString(in string, sep string, mapFns ...func(in string) string) []string {
+	var res []string
+	for _, s := range strings.Split(in, sep) {
+		for _, mapFn := range mapFns {
+			s = mapFn(s)
+		}
+		if s != "" {
+			res = append(res, s)
+		}
+	}
+	return res
+}
+
+type StringFn = func(in string) string
+
+// SplitTrimAndFilterString splits a string, trims each part and filters out
+// empty strings.
+func SplitTrimAndFilterString(in string, sep string, mapFns ...StringFn) []string {
+	mapFns = append([]StringFn{strings.TrimSpace}, mapFns...)
+	return SplitMapAndFilterString(in, sep, mapFns...)
+}
+
 // IfThenElse is a ternary helper function.
 func IfThenElse[T any](cond bool, t T, f T) T {
 	if cond {
