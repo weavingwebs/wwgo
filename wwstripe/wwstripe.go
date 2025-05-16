@@ -2,11 +2,10 @@ package wwstripe
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/stripe/stripe-go/v78"
-	"github.com/stripe/stripe-go/v78/client"
-	"github.com/stripe/stripe-go/v78/webhook"
+	"github.com/weavingwebs/wwgo"
 	"io"
 	"net/http"
 	"os"
@@ -14,10 +13,10 @@ import (
 	"sync"
 )
 
-type StripeEventHandler func(ctx context.Context, stripeApi *Stripe, event stripe.Event) ([]byte, error)
+type StripeEventHandler[API any] func(ctx context.Context, stripeApi *Stripe[API], event Event) ([]byte, error)
 
-type Stripe struct {
-	sc              *client.API
+type Stripe[API any] struct {
+	sc              StripeClient[API]
 	log             zerolog.Logger
 	webhookWg       *sync.WaitGroup
 	stripePublicKey string
@@ -30,35 +29,143 @@ type StripePublicSettings struct {
 	StripePublicKey string `json:"stripePublicKey"`
 }
 
-func NewStripeFromEnv(log zerolog.Logger) (*Stripe, error) {
+// StripeClient is a generic interface to decouple from the stripe api client
+// version. This is important because once set up, stripe webhooks will stick
+// with the version we set until we migrate them.
+type StripeClient[API any] interface {
+	APIVersion() string
+	Client() API
+	Init(secretKey string)
+	ListWebhookEndpoints() []*WebhookEndpoint
+	UpdateWebhookEndpoint(id string, params *WebhookEndpointParams) (*WebhookEndpoint, error)
+	NewWebhookEndpoint(params *WebhookEndpointParams) (*WebhookEndpoint, error)
+	ConstructEvent(payload []byte, header string, secret string) (Event, error)
+}
+
+type WebhookEndpoint struct {
+	APIVersion string `json:"api_version"`
+	// The ID of the associated Connect application.
+	Application string `json:"application"`
+	// Time at which the object was created. Measured in seconds since the Unix epoch.
+	Created int64 `json:"created"`
+	Deleted bool  `json:"deleted"`
+	// An optional description of what the webhook is used for.
+	Description string `json:"description"`
+	// The list of events to enable for this endpoint. `['*']` indicates that all events are enabled, except those that require explicit selection.
+	EnabledEvents []string `json:"enabled_events"`
+	// Unique identifier for the object.
+	ID string `json:"id"`
+	// Has the value `true` if the object exists in live mode or the value `false` if the object exists in test mode.
+	Livemode bool `json:"livemode"`
+	// Set of [key-value pairs](https://stripe.com/docs/api/metadata) that you can attach to an object. This can be useful for storing additional information about the object in a structured format.
+	Metadata map[string]string `json:"metadata"`
+	// String representing the object's type. Objects of the same type share the same value.
+	Object string `json:"object"`
+	// The endpoint's secret, used to generate [webhook signatures](https://stripe.com/docs/webhooks/signatures). Only returned at creation.
+	Secret string `json:"secret"`
+	// The status of the webhook. It can be `enabled` or `disabled`.
+	Status string `json:"status"`
+	// The URL of the webhook endpoint.
+	URL string `json:"url"`
+}
+
+type WebhookEndpointParams struct {
+	// Whether this endpoint should receive events from connected accounts (`true`), or from your account (`false`). Defaults to `false`.
+	Connect *bool `form:"connect"`
+	// An optional description of what the webhook is used for.
+	Description *string `form:"description"`
+	// Disable the webhook endpoint if set to true.
+	Disabled *bool `form:"disabled"`
+	// The list of events to enable for this endpoint. You may specify `['*']` to enable all events, except those that require explicit selection.
+	EnabledEvents []*string `form:"enabled_events"`
+	// Specifies which fields in the response should be expanded.
+	Expand []*string `form:"expand"`
+	// Set of [key-value pairs](https://stripe.com/docs/api/metadata) that you can attach to an object. This can be useful for storing additional information about the object in a structured format. Individual keys can be unset by posting an empty value to them. All keys can be unset by posting an empty value to `metadata`.
+	Metadata map[string]string `form:"metadata"`
+	// The URL of the webhook endpoint.
+	URL *string `form:"url"`
+	// This parameter is only available on creation.
+	// We recommend setting the API version that the library is pinned to. See apiversion in stripe.go
+	// Events sent to this endpoint will be generated with this Stripe Version instead of your account's default Stripe Version.
+	APIVersion *string `form:"api_version"`
+}
+
+type Event struct {
+	// The connected account that originates the event.
+	Account string `json:"account"`
+	// The Stripe API version used to render `data`. This property is populated only for events on or after October 31, 2014.
+	APIVersion string `json:"api_version"`
+	// Time at which the object was created. Measured in seconds since the Unix epoch.
+	Created int64      `json:"created"`
+	Data    *EventData `json:"data"`
+	// Unique identifier for the object.
+	ID string `json:"id"`
+	// Has the value `true` if the object exists in live mode or the value `false` if the object exists in test mode.
+	Livemode bool `json:"livemode"`
+	// String representing the object's type. Objects of the same type share the same value.
+	Object string `json:"object"`
+	// Number of webhooks that haven't been successfully delivered (for example, to return a 20x response) to the URLs you specify.
+	PendingWebhooks int64 `json:"pending_webhooks"`
+	// Information on the API request that triggers the event.
+	Request *EventRequest `json:"request"`
+	// Description of the event (for example, `invoice.created` or `charge.refunded`).
+	Type string `json:"type"`
+}
+
+type EventRequest struct {
+	// ID is the request ID of the request that created an event, if the event
+	// was created by a request.
+	// ID of the API request that caused the event. If null, the event was automatic (e.g., Stripe's automatic subscription handling). Request logs are available in the [dashboard](https://dashboard.stripe.com/logs), but currently not in the API.
+	ID string `json:"id"`
+
+	// IdempotencyKey is the idempotency key of the request that created an
+	// event, if the event was created by a request and if an idempotency key
+	// was specified for that request.
+	// The idempotency key transmitted during the request, if any. *Note: This property is populated only for events on or after May 23, 2017*.
+	IdempotencyKey string `json:"idempotency_key"`
+}
+
+type EventData struct {
+	// Object is a raw mapping of the API resource contained in the event.
+	// Although marked with json:"-", it's still populated independently by
+	// a custom UnmarshalJSON implementation.
+	// Object containing the API resource relevant to the event. For example, an `invoice.created` event will have a full [invoice object](https://stripe.com/docs/api#invoice_object) as the value of the object key.
+	Object map[string]interface{} `json:"-"`
+	// Object containing the names of the updated attributes and their values prior to the event (only included in events of type `*.updated`). If an array attribute has any updated elements, this object contains the entire array. In Stripe API versions 2017-04-06 or earlier, an updated array attribute in this object includes only the updated array elements.
+	PreviousAttributes map[string]interface{} `json:"previous_attributes"`
+	Raw                json.RawMessage        `json:"object"`
+}
+
+func NewStripeFromEnv[API any](log zerolog.Logger, stripeClient StripeClient[API]) (*Stripe[API], error) {
 	stripeKey := os.Getenv("STRIPE_SECRET_KEY")
 	if stripeKey == "" {
 		return nil, errors.New("missing STRIPE_SECRET_KEY")
 	}
-	sApi := &Stripe{
+	sApi := &Stripe[API]{
+		sc:              stripeClient,
 		log:             log,
 		webhookWg:       &sync.WaitGroup{},
-		stripeSecretKey: stripeKey,
 		stripePublicKey: os.Getenv("STRIPE_PUBLIC_KEY"),
+		stripeSecretKey: stripeKey,
+		webhookUrl:      "",
 		webhookSecret:   os.Getenv("STRIPE_WEBHOOK_SECRET"),
 	}
-	sApi.sc = &client.API{}
-	sApi.sc.Init(stripeKey, nil)
+	sApi.sc.Init(stripeKey)
 
 	return sApi, nil
 }
 
-func (sApi *Stripe) Client() *client.API {
+func (sApi *Stripe[API]) Client() API {
 	// Wait if webhook is still setting up.
 	sApi.webhookWg.Wait()
-	return sApi.sc
+	return sApi.sc.Client()
 }
 
-func (sApi *Stripe) isTestMode() bool {
+func (sApi *Stripe[API]) isTestMode() bool {
 	return strings.HasPrefix(sApi.stripeSecretKey, "sk_test_")
 }
 
-func (sApi *Stripe) WebUrl(stripeId string) string {
+func (sApi *Stripe[API]) WebUrl(stripeId string) string {
 	url := "https://dashboard.stripe.com/"
 	if sApi.isTestMode() {
 		url += "test/"
@@ -67,7 +174,7 @@ func (sApi *Stripe) WebUrl(stripeId string) string {
 	return url
 }
 
-func (sApi *Stripe) PublicSettings() StripePublicSettings {
+func (sApi *Stripe[API]) PublicSettings() StripePublicSettings {
 	return StripePublicSettings{StripePublicKey: sApi.stripePublicKey}
 }
 
@@ -83,7 +190,7 @@ type WebhookInput struct {
 func (wi WebhookInput) stripeEvents() []*string {
 	events := make([]*string, len(wi.Events))
 	for i, e := range wi.Events {
-		events[i] = stripe.String(e)
+		events[i] = wwgo.ToPtr(e)
 	}
 	return events
 }
@@ -96,7 +203,7 @@ type MigrateWebhookFailHandler func(err error)
 // MigrateWebhook asynchronously checks stripe API for an existing webhook and
 // updates the subscribed events if needed. onFail is called if a webhook for
 // the given url does not exist or the webhook secret is not set.
-func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFailHandler) {
+func (sApi *Stripe[API]) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFailHandler) {
 	// IMPORTANT: Do not to call Client() from here, it will deadlock.
 	sApi.webhookWg.Add(1)
 	go func() {
@@ -104,13 +211,9 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 
 		// Check if the webhook is already setup.
 		enabledEvents := input.stripeEvents()
-		listParams := &stripe.WebhookEndpointListParams{}
-		listParams.Filters.AddFilter("limit", "", "100")
-		i := sApi.sc.WebhookEndpoints.List(listParams)
-		for i.Next() {
-			we := i.WebhookEndpoint()
+		for _, we := range sApi.sc.ListWebhookEndpoints() {
 			if we.URL == input.Url {
-				if we.Status == "enabled" && eventsMatch(we.EnabledEvents, enabledEvents) && we.APIVersion == stripe.APIVersion {
+				if we.Status == "enabled" && eventsMatch(we.EnabledEvents, enabledEvents) && we.APIVersion == sApi.sc.APIVersion() {
 					sApi.log.Info().Msgf("Stripe Webhook already setup: " + we.ID)
 					sApi.log.Debug().Interface("webhook", we).Msgf("Stripe Webhook")
 
@@ -122,19 +225,19 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 				}
 
 				// If the API version is not the same, we need to recreate the webhook.
-				if we.APIVersion != stripe.APIVersion {
-					err := errors.Errorf("Stripe Webhook API version mismatch (webhook version: %s, SDK: %s). Ensure all pending webhooks are complete (using the previous version) then disable the existing webhook (deleting it will lose history) and create a new one.", we.APIVersion, stripe.APIVersion)
+				if we.APIVersion != sApi.sc.APIVersion() {
+					err := errors.Errorf("Stripe Webhook API version mismatch (webhook version: %s, SDK: %s). Ensure all pending webhooks are complete (using the previous version) then disable the existing webhook (deleting it will lose history) and create a new one.", we.APIVersion, sApi.sc.APIVersion())
 					sApi.log.Err(err).Send()
 					onFail(err)
 					return
 				}
 
 				// Update the webhook.
-				params := &stripe.WebhookEndpointParams{
-					Disabled:      stripe.Bool(false),
+				params := &WebhookEndpointParams{
+					Disabled:      wwgo.ToPtr(false),
 					EnabledEvents: enabledEvents,
 				}
-				we, err := sApi.sc.WebhookEndpoints.Update(
+				we, err := sApi.sc.UpdateWebhookEndpoint(
 					we.ID,
 					params,
 				)
@@ -158,25 +261,21 @@ func (sApi *Stripe) MigrateWebhook(input WebhookInput, onFail MigrateWebhookFail
 	}()
 }
 
-func (sApi *Stripe) CreateWebhook(input WebhookInput) (*stripe.WebhookEndpoint, error) {
+func (sApi *Stripe[API]) CreateWebhook(input WebhookInput) (*WebhookEndpoint, error) {
 	// Check if the webhook is already setup.
-	listParams := &stripe.WebhookEndpointListParams{}
-	listParams.Filters.AddFilter("limit", "", "100")
-	i := sApi.sc.WebhookEndpoints.List(listParams)
-	for i.Next() {
-		we := i.WebhookEndpoint()
+	for _, we := range sApi.sc.ListWebhookEndpoints() {
 		if we.URL == input.Url && we.Status == "enabled" {
 			return nil, errors.Errorf("Webhook already exists for %s: %s", input.Url, we.ID)
 		}
 	}
 
 	// Create webhook.
-	params := &stripe.WebhookEndpointParams{
-		URL:           stripe.String(input.Url),
+	params := &WebhookEndpointParams{
+		URL:           wwgo.ToPtr(input.Url),
 		EnabledEvents: input.stripeEvents(),
-		APIVersion:    stripe.String(stripe.APIVersion),
+		APIVersion:    wwgo.ToPtr(sApi.sc.APIVersion()),
 	}
-	we, err := sApi.sc.WebhookEndpoints.New(
+	we, err := sApi.sc.NewWebhookEndpoint(
 		params,
 	)
 	if err != nil {
@@ -187,7 +286,7 @@ func (sApi *Stripe) CreateWebhook(input WebhookInput) (*stripe.WebhookEndpoint, 
 	return we, nil
 }
 
-func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler, onError func(err error)) http.HandlerFunc {
+func (sApi *Stripe[API]) WebhookHandlerFunc(onWebhook StripeEventHandler[API], onError func(err error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		// Read request body.
 		const MaxBodyBytes = int64(65536)
@@ -201,7 +300,7 @@ func (sApi *Stripe) WebhookHandlerFunc(onWebhook StripeEventHandler, onError fun
 		sApi.log.Trace().Interface("webhookPayload", payload).Msgf("Stripe Webhook Event")
 
 		// Parse the event.
-		event, err := webhook.ConstructEvent(
+		event, err := sApi.sc.ConstructEvent(
 			payload,
 			req.Header.Get("Stripe-Signature"),
 			sApi.webhookSecret,
