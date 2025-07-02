@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
-	"github.com/golang-migrate/migrate/v4/source/go_bindata"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"github.com/weavingwebs/wwgo"
+	"io/fs"
 )
 
-func MysqlDbMigrate(db *sqlx.DB, migrations *bindata.AssetSource) (*migrate.Migrate, error) {
+func MysqlDbMigrate(db *sqlx.DB, migrations fs.FS, path string) (*migrate.Migrate, error) {
 	dbDriver, err := mysql.WithInstance(db.DB, &mysql.Config{})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to init migrate db driver")
 	}
 
-	dataDriver, err := bindata.WithInstance(migrations)
+	dataDriver, err := iofs.New(migrations, path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to init migrate data driver")
 	}
@@ -43,7 +44,7 @@ func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
 				Name: "up",
 				Action: func(ctx *cli.Context) error {
 					if err := migrator().Up(); err != nil {
-						if err != migrate.ErrNoChange {
+						if !errors.Is(err, migrate.ErrNoChange) {
 							return err
 						}
 						fmt.Println(err)

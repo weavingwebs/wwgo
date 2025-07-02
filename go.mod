@@ -1,6 +1,8 @@
 module github.com/weavingwebs/wwgo
 
-go 1.22
+go 1.23.0
+
+toolchain go1.24.3
 
 require (
 	github.com/99designs/gqlgen v0.17.45
@@ -18,7 +20,7 @@ require (
 	github.com/go-chi/httplog v0.3.2
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/golang-jwt/jwt/v5 v5.2.1
-	github.com/golang-migrate/migrate/v4 v4.17.0
+	github.com/golang-migrate/migrate/v4 v4.18.3
 	github.com/google/uuid v1.6.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/joho/godotenv v1.5.1
@@ -33,8 +35,8 @@ require (
 	github.com/subchen/go-trylock/v2 v2.0.0
 	github.com/urfave/cli/v2 v2.27.1
 	github.com/vektah/gqlparser/v2 v2.5.11
-	golang.org/x/crypto v0.28.0
-	golang.org/x/sync v0.8.0
+	golang.org/x/crypto v0.36.0
+	golang.org/x/sync v0.12.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
@@ -71,11 +73,10 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sosodev/duration v1.2.0 // indirect
-	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/net v0.30.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
-	golang.org/x/term v0.25.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 )
