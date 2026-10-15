@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"os"
+	"runtime"
 )
 
 type awsLogger struct {
@@ -26,6 +27,8 @@ func (l awsLogger) Logf(classification logging.Classification, format string, v 
 }
 
 func NewAwsConfig(ctx context.Context, log zerolog.Logger) aws.Config {
+	ensureHomeEnv(log)
+
 	configs := []func(options *config.LoadOptions) error{
 		config.WithLogger(awsLogger{log: log.With().Str("lib", "aws").Logger()}),
 	}
@@ -42,4 +45,23 @@ func NewAwsConfig(ctx context.Context, log zerolog.Logger) aws.Config {
 	}
 
 	return awsConfig
+}
+
+// ensureHomeEnv sets $HOME if missing (e.g. systemd services), otherwise the AWS SDK fails to load credentials.
+func ensureHomeEnv(log zerolog.Logger) {
+	if runtime.GOOS == "windows" || os.Getenv("HOME") != "" {
+		return
+	}
+	home := ""
+	if os.Getuid() == 0 {
+		home = "/root"
+	} else if userName := os.Getenv("USER"); userName != "" {
+		home = "/home/" + userName
+	}
+	if home == "" {
+		return
+	}
+	if err := os.Setenv("HOME", home); err != nil {
+		log.Warn().Err(err).Msg("Failed to set HOME")
+	}
 }

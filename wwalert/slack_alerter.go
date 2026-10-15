@@ -25,6 +25,7 @@ type SlackAlerter struct {
 	Log             zerolog.Logger
 	Configs         []SlackAlertConfig
 	DefaultUsername string
+	SecretFetcher   SecretFetcher
 }
 
 func (sa SlackAlerter) SendAlert(ctx context.Context, msg string) error {
@@ -44,7 +45,7 @@ func (sa SlackAlerter) SendAlert(ctx context.Context, msg string) error {
 				return errors.Errorf("[%d].webhook is not defined", i)
 			}
 			var err error
-			webhook, err = c.WebhookAwsSecret.Resolve(ctx)
+			webhook, err = c.WebhookAwsSecret.Resolve(ctx, sa.SecretFetcher)
 			if err != nil {
 				return err
 			}

@@ -21,6 +21,7 @@ type MsTeamsAlerter struct {
 	Log           zerolog.Logger
 	Configs       []MsTeamsAlertConfig
 	DefaultPrefix string
+	SecretFetcher SecretFetcher
 }
 
 func (sa MsTeamsAlerter) SendAlert(ctx context.Context, msg string) error {
@@ -43,7 +44,7 @@ func (sa MsTeamsAlerter) SendAlert(ctx context.Context, msg string) error {
 				return errors.Errorf("[%d].webhook is not defined", i)
 			}
 			var err error
-			webhook, err = c.WebhookAwsSecret.Resolve(ctx)
+			webhook, err = c.WebhookAwsSecret.Resolve(ctx, sa.SecretFetcher)
 			if err != nil {
 				return err
 			}

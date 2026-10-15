@@ -36,9 +36,10 @@ func ReadConfig(filePath string) (*AlertsConfig, error) {
 }
 
 type ConfigAlerter struct {
-	log     zerolog.Logger
-	config  *AlertsConfig
-	appName string
+	log           zerolog.Logger
+	config        *AlertsConfig
+	appName       string
+	secretFetcher SecretFetcher
 }
 
 func NewConfigAlerter(log zerolog.Logger, config *AlertsConfig, appName string) *ConfigAlerter {
@@ -59,6 +60,12 @@ func NewConfigAlerterFromEnv(log zerolog.Logger, appName string) (*ConfigAlerter
 		return nil, err
 	}
 	return NewConfigAlerter(log, config, appName), nil
+}
+
+// WithSecretFetcher is required to resolve any WebhookAwsSecret configs.
+func (a *ConfigAlerter) WithSecretFetcher(f SecretFetcher) *ConfigAlerter {
+	a.secretFetcher = f
+	return a
 }
 
 func (a *ConfigAlerter) SendAlert(ctx context.Context, category string, msg string) error {
@@ -82,6 +89,7 @@ func (a *ConfigAlerter) SendAlert(ctx context.Context, category string, msg stri
 				Log:             a.log,
 				Configs:         alertConfig.Slack,
 				DefaultUsername: a.appName,
+				SecretFetcher:   a.secretFetcher,
 			}
 			if err := alerter.SendAlert(ctx, msg); err != nil {
 				return err
@@ -96,6 +104,7 @@ func (a *ConfigAlerter) SendAlert(ctx context.Context, category string, msg stri
 				Log:           a.log,
 				Configs:       alertConfig.MsTeams,
 				DefaultPrefix: a.appName,
+				SecretFetcher: a.secretFetcher,
 			}
 			if err := alerter.SendAlert(ctx, msg); err != nil {
 				return err
