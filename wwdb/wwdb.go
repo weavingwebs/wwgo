@@ -21,7 +21,6 @@ func OpenDb(log zerolog.Logger, driverName string, dsn string, maxOpenConns int)
 	if err != nil {
 		return nil, errors.Wrap(err, "Error opening connection to DB")
 	}
-	db.SetMaxOpenConns(maxOpenConns)
 
 	// Wrap the connection with a logger.
 	db = sqldblogger.OpenDriver(
@@ -32,6 +31,11 @@ func OpenDb(log zerolog.Logger, driverName string, dsn string, maxOpenConns int)
 		sqldblogger.WithQueryerLevel(sqldblogger.LevelDebug),
 		sqldblogger.WithExecerLevel(sqldblogger.LevelTrace),
 	)
+
+	// Set connection pool limits.
+	// IMPORTANT: This must be set after wrapping with sqldblogger, otherwise it will not take effect.
+	db.SetMaxOpenConns(maxOpenConns)
+	db.SetConnMaxIdleTime(5 * time.Minute)
 
 	// Wrap with SQLX & override the name mapper.
 	sqlx.NameMapper = func(str string) string {
