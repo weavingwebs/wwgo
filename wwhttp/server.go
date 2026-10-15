@@ -3,10 +3,11 @@ package wwhttp
 import (
 	"context"
 	"crypto/tls"
-	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 	"net/http"
 	"time"
+
+	"github.com/pkg/errors"
+	"golang.org/x/sync/errgroup"
 )
 
 type Server struct {
@@ -100,17 +101,8 @@ func makeHttpServer(r http.Handler, port string) *http.Server {
 func makeHttpsServer(r http.Handler, port string, domain string) *http.Server {
 	httpsServer := makeHttpServer(r, port)
 	httpsServer.TLSConfig = &tls.Config{
-		PreferServerCipherSuites: true,
-		MinVersion:               tls.VersionTLS12,
-		ServerName:               domain,
-		CipherSuites: []uint16{
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
-			tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-		},
+		MinVersion: tls.VersionTLS12,
+		ServerName: domain,
 	}
 	return httpsServer
 }
