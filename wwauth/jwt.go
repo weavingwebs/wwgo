@@ -6,7 +6,6 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"net/http"
 	"strings"
 	"time"
@@ -65,7 +64,7 @@ func (auth *JwtAuth) JwtMiddleware(next http.Handler) http.Handler {
 		// Check for token.
 		tokenStr := TokenFromHeader(r)
 		if tokenStr == "" {
-			log.Trace().Msg("No JWT found")
+			auth.log.Trace().Msg("No JWT found")
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -73,9 +72,10 @@ func (auth *JwtAuth) JwtMiddleware(next http.Handler) http.Handler {
 		// Parse the token.
 		token, err := auth.ParseJwt(r.Context(), tokenStr)
 		if err != nil {
-			log.Error().Err(err).Stack().Msg("JWT error")
+			auth.log.Error().Err(err).Stack().Msg("JWT error")
 			if errors.Is(err, jwt.ErrTokenExpired) {
 				http.Error(w, "JWT has expired", http.StatusUnauthorized)
+				return
 			}
 			http.Error(w, "JWT error", http.StatusUnauthorized)
 			return
