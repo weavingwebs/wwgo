@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/weavingwebs/wwgo"
-	"io/ioutil"
+	"io"
 	"net"
 	"net/http"
 	"os"
@@ -162,7 +162,7 @@ func reCaptchaVerify(ip net.IP, secret string, token string) ([]byte, error) {
 		return []byte{}, errors.Wrap(err, "reCAPTCHA verification request failed")
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return body, errors.Wrap(err, "failed to read reCAPTCHA verification request body")
 	}

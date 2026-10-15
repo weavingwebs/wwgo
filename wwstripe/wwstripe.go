@@ -214,7 +214,7 @@ func (sApi *Stripe[API]) MigrateWebhook(input WebhookInput, onFail MigrateWebhoo
 		for _, we := range sApi.sc.ListWebhookEndpoints() {
 			if we.URL == input.Url {
 				if we.Status == "enabled" && eventsMatch(we.EnabledEvents, enabledEvents) && we.APIVersion == sApi.sc.APIVersion() {
-					sApi.log.Info().Msgf("Stripe Webhook already setup: " + we.ID)
+					sApi.log.Info().Msg("Stripe Webhook already setup: " + we.ID)
 					sApi.log.Debug().Interface("webhook", we).Msgf("Stripe Webhook")
 
 					if sApi.webhookSecret == "" {
@@ -247,7 +247,7 @@ func (sApi *Stripe[API]) MigrateWebhook(input WebhookInput, onFail MigrateWebhoo
 					onFail(err)
 					return
 				}
-				sApi.log.Info().Msgf("Stripe Webhook updated: " + we.ID)
+				sApi.log.Info().Msg("Stripe Webhook updated: " + we.ID)
 				sApi.log.Debug().Interface("webhook", we).Msgf("Updated Stripe Webhook")
 				if sApi.webhookSecret == "" {
 					onFail(ErrNoWebhookSecret)
@@ -281,7 +281,7 @@ func (sApi *Stripe[API]) CreateWebhook(input WebhookInput) (*WebhookEndpoint, er
 	if err != nil {
 		return nil, errors.Wrap(err, "error creating webhook")
 	}
-	sApi.log.Info().Msgf("Stripe Webhook created: " + we.ID)
+	sApi.log.Info().Msg("Stripe Webhook created: " + we.ID)
 	sApi.log.Debug().Interface("webhook", we).Msgf("Created Stripe Webhook")
 	return we, nil
 }

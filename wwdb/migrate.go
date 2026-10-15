@@ -1,13 +1,14 @@
 package wwdb
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	"github.com/weavingwebs/wwgo"
 	"io/fs"
 )
@@ -36,14 +37,14 @@ func MysqlDbMigrate(db *sqlx.DB, migrations fs.FS, path string) (*migrate.Migrat
 	return migrator, nil
 }
 
-func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
+func MigrateCommand(migrator func(ctx context.Context) *migrate.Migrate) *cli.Command {
 	return &cli.Command{
 		Name: "migrate",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			{
 				Name: "up",
-				Action: func(ctx *cli.Context) error {
-					if err := migrator().Up(); err != nil {
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					if err := migrator(ctx).Up(); err != nil {
 						if !errors.Is(err, migrate.ErrNoChange) {
 							return err
 						}
@@ -65,12 +66,12 @@ func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
 						Value: 1,
 					},
 				},
-				Action: func(ctx *cli.Context) error {
-					if !ctx.Bool("yes") && !wwgo.CliConfirm("Are you sure you want to apply 1 down migration?") {
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					if !cmd.Bool("yes") && !wwgo.CliConfirm(fmt.Sprintf("Are you sure you want to apply %d down migration(s)?", cmd.Int("steps"))) {
 						fmt.Println("cancelled")
 						return nil
 					}
-					if err := migrator().Steps(-ctx.Int("steps")); err != nil {
+					if err := migrator(ctx).Steps(-cmd.Int("steps")); err != nil {
 						return err
 					}
 					fmt.Println("👍️")
@@ -85,8 +86,8 @@ func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
 						Required: true,
 					},
 				},
-				Action: func(ctx *cli.Context) error {
-					if err := migrator().Force(ctx.Int("version")); err != nil {
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					if err := migrator(ctx).Force(cmd.Int("version")); err != nil {
 						return err
 					}
 					fmt.Println("👍️")
@@ -101,12 +102,12 @@ func MigrateCommand(migrator func() *migrate.Migrate) *cli.Command {
 						Aliases: []string{"y"},
 					},
 				},
-				Action: func(ctx *cli.Context) error {
-					if !ctx.Bool("yes") && !(wwgo.CliConfirm("Are you sure you want to destroy the whole database?") && wwgo.CliConfirm("Seriously, you are really sure you want to destroy the whole database?")) {
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					if !cmd.Bool("yes") && !(wwgo.CliConfirm("Are you sure you want to destroy the whole database?") && wwgo.CliConfirm("Seriously, you are really sure you want to destroy the whole database?")) {
 						fmt.Println("cancelled")
 						return nil
 					}
-					if err := migrator().Drop(); err != nil {
+					if err := migrator(ctx).Drop(); err != nil {
 						return err
 					}
 					fmt.Println("👍️")

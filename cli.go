@@ -10,7 +10,7 @@ import (
 )
 
 func CliAsk(question string, defaultAnswer string) string {
-	fmt.Printf(question)
+	fmt.Print(question)
 	if defaultAnswer != "" {
 		fmt.Printf(" [%s]", defaultAnswer)
 	}

@@ -70,7 +70,7 @@ func (l *requestLogger) NewLogEntry(r *http.Request) middleware.LogEntry {
 	msg := fmt.Sprintf("Request: %s %s", r.Method, r.URL.Path)
 	entry.Logger = l.Logger.With().Fields(requestLogFields(r, true, l.Cloudflare)).Logger()
 	if !httplog.DefaultOptions.Concise {
-		entry.Logger.Info().Fields(requestLogFields(r, httplog.DefaultOptions.Concise, l.Cloudflare)).Msgf(msg)
+		entry.Logger.Info().Fields(requestLogFields(r, httplog.DefaultOptions.Concise, l.Cloudflare)).Msg(msg)
 	}
 	return entry
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/olekukonko/tablewriter"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli/v2"
+	"github.com/urfave/cli/v3"
 	"os"
 	"time"
 )
@@ -118,16 +118,16 @@ func FloodGetSummary(ctx context.Context, dbConn *sqlx.DB) ([]*FloodSummaryItem,
 	return res, nil
 }
 
-func FloodCommand(dbConn func() *sqlx.DB) *cli.Command {
+func FloodCommand(dbConn func(ctx context.Context) *sqlx.DB) *cli.Command {
 	return &cli.Command{
 		Name:  "flood",
 		Usage: "Flood commands",
-		Subcommands: []*cli.Command{
+		Commands: []*cli.Command{
 			{
 				Name:  "get",
 				Usage: "Get a summary of flood hits",
-				Action: func(ctx *cli.Context) error {
-					summary, err := FloodGetSummary(ctx.Context, dbConn())
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					summary, err := FloodGetSummary(ctx, dbConn(ctx))
 					if err != nil {
 						return err
 					}
@@ -138,35 +138,36 @@ func FloodCommand(dbConn func() *sqlx.DB) *cli.Command {
 					}
 
 					table := tablewriter.NewWriter(os.Stdout)
-					table.SetHeader([]string{
+					table.Header(
 						"Event",
 						"Identifier",
 						"Last Hit",
 						"Count",
-					})
+					)
 
 					for _, item := range summary {
-						table.Append([]string{
+						if err := table.Append([]string{
 							item.Event,
 							item.Identifier,
 							item.LastHit.Format(time.RFC822),
 							fmt.Sprintf("%d", item.Count),
-						})
+						}); err != nil {
+							return err
+						}
 					}
-					table.Render()
-					return nil
+					return table.Render()
 				},
 			},
 			{
 				Name:  "unban",
 				Usage: "Unban an IP",
-				Action: func(ctx *cli.Context) error {
-					if ctx.NArg() < 1 {
+				Action: func(ctx context.Context, cmd *cli.Command) error {
+					if cmd.NArg() < 1 {
 						fmt.Println("Argument required: ip address")
 						os.Exit(1)
 					}
-					ip := ctx.Args().Get(0)
-					res, err := FloodUnban(ctx.Context, dbConn(), ip)
+					ip := cmd.Args().Get(0)
+					res, err := FloodUnban(ctx, dbConn(ctx), ip)
 					if err != nil {
 						return err
 					}

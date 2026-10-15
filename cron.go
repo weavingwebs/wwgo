@@ -94,5 +94,5 @@ func zerologCronLog(logEntry *zerolog.Event, msg string, keysAndValues ...interf
 	if len(keysAndValues) != 0 {
 		logEntry.Interface("cronContext", keysAndValues)
 	}
-	logEntry.Msgf(msg)
+	logEntry.Msg(msg)
 }
